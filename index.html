@@ -1,0 +1,105 @@
+---
+title: Main page
+layout: plain
+navbar:
+  link: Main
+  icon: home
+
+params:
+  - id: server
+    desc: Server
+    items:
+      - id: public_key
+        name: Public key
+        placeholder: "Server's public key"
+        help: |
+          Query using <code>wg show wg0 public-key</code>.
+      - id: endpoint
+        name: Endpoint
+        placeholder: "Server's endpoint in the HOST:PORT format"
+        help: |
+          Server's public IP address or a hostname, accessible from the client.
+          Query the current port using <code>wg show wg0 listen-port</code>.
+      - id: preshared_key
+        name: Preshared key
+        placeholder: Preshared key (shared between server and client)
+        help: |
+          Generate using <code>wg genpsk</code>.
+  - id: client
+    desc: Client
+    items:
+      - id: public_key
+        name: Public key
+        placeholder: "Client's public key"
+        help: |
+          Generate both the private and the public keys using <code>wg genkey | tee private.key | wg pubkey > public.key</code>.
+      - id: private_key
+        name: Private key
+        placeholder: "Client's private key"
+        help: |
+          Unless generated in one go with the public key, generate one using <code>wg genkey</code>.
+      - id: ipv4
+        name: IPv4
+        placeholder: IPv4 address and netmask, like 192.168.123.5/24
+        help: |
+          IPv4 address to assign to the client and its netmask in the CIDR format.
+      - id: ipv6
+        name: IPv6
+        placeholder: IPv6 address and netmask, like fd01:2345:6789::5/48
+        help: |
+          IPv6 address to assign to the client and its netmask in the CIDR format.
+---
+<h1>WireGuard configuration</h1>
+
+<div class="row">
+  <div class="col-md-8">
+    <p class="text-muted">WireGuard is incredibly flexible.
+For one thing, there's no built-in notion of a "server" and its "clients".
+However, I believe that there being a central server and a number of clients
+connected to it is a common use-case.
+Adding a client might not be easy, since their configuration is typically
+distributed in a file adhering to a WireGuard-specific format; these files can
+be tedious to write by hand.
+This page tries to make this task easier.</p>
+    <p class="text-muted">This page assumes that you have a WireGuard server
+configured on interface <code>wg0</code>.
+You can then generate the new client's keys, feed them to this page and it will
+show the configuration that can be easily consumed by the new client.</p>
+  </div>
+</div>
+
+<form class="form-horizontal">
+  <div class="row">
+{% for grp in page.params %}
+    <div class="col-md-6">
+      <div class="form-group">
+        <div class="row">
+          <div class="col-sm-offset-3 col-sm-9">
+            <h2 class="text-center h3" style="margin-bottom: 0;">{{ grp.desc }}</h2>
+          </div>
+        </div>
+      </div>
+  {% for param in grp.items %}
+      <div class="form-group">
+        <div class="row">
+          <label for="param_{{ grp.id }}_{{ param.id }}" class="col-sm-3 control-label">{{ param.name }}</label>
+          <div class="col-sm-9">
+            <input type="text" class="form-control" id="param_{{ grp.id }}_{{ param.id }}" placeholder="{{ param.placeholder }}" aria-describedby="param_{{ grp.id }}_{{ param.id }}_help">
+            <span id="param_{{ grp.id }}_{{ param.id }}_help" class="help-block" style="margin-bottom: 0;">{{ param.help }}</span>
+          </div>
+        </div>
+      </div>
+  {% endfor %}
+    </div>
+{% endfor %}
+    <div class="col-md-offset-6 col-md-6">
+      <div class="form-group">
+        <div class="row">
+          <div class="col-sm-offset-3 col-sm-9 text-center">
+            <button type="submit" class="btn btn-primary">Generate</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
