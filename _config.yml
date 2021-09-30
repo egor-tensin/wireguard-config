@@ -1,0 +1,29 @@
+# Jekyll
+baseurl: /wireguard-config
+
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - README.md
+  - vendor/
+
+# Plugins
+plugins:
+  - jekyll-github-metadata
+  - jekyll-remote-theme
+
+# jekyll-github-metadata
+repository: egor-tensin/wireguard-config
+# jekyll-remote-theme
+remote_theme: egor-tensin/jekyll-theme@00bf98134e4da8897ec32897a9bc88b610696d9c
+
+# Theme settings
+settings:
+  project:
+    name: wireguard-config
+    description: Generate WireGuard configuration files
+    license: MIT License
+    license_file: LICENSE.txt
+  author:
+    name: Egor Tensin
+    email: Egor.Tensin@gmail.com
