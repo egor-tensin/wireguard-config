@@ -4,6 +4,9 @@ layout: plain
 navbar:
   link: Main
   icon: home
+custom_js:
+  - https://cdn.jsdelivr.net/npm/ipaddr.js@2.0.0/ipaddr.min.js
+  - main.js
 
 params:
   - id: server
@@ -68,38 +71,41 @@ show the configuration that can be easily consumed by the new client.</p>
   </div>
 </div>
 
-<form class="form-horizontal">
+<form action="javascript:void(0);" onsubmit="form_on_submit(); return false;">
   <div class="row">
 {% for grp in page.params %}
     <div class="col-md-6">
-      <div class="form-group">
-        <div class="row">
+      <div class="form-horizontal">
+        <div class="form-group">
           <div class="col-sm-offset-3 col-sm-9">
             <h2 class="text-center h3" style="margin-bottom: 0;">{{ grp.desc }}</h2>
           </div>
         </div>
-      </div>
   {% for param in grp.items %}
-      <div class="form-group">
-        <div class="row">
+        <div class="form-group">
           <label for="param_{{ grp.id }}_{{ param.id }}" class="col-sm-3 control-label">{{ param.name }}</label>
           <div class="col-sm-9">
             <input type="text" class="form-control" id="param_{{ grp.id }}_{{ param.id }}" placeholder="{{ param.placeholder }}" aria-describedby="param_{{ grp.id }}_{{ param.id }}_help">
-            <span id="param_{{ grp.id }}_{{ param.id }}_help" class="help-block" style="margin-bottom: 0;">{{ param.help }}</span>
+            <span id="param_{{ grp.id }}_{{ param.id }}_help" class="help-block" style="margin-bottom: 0;">
+              <span id="param_{{ grp.id }}_{{ param.id }}_error" class="text-danger small" style="display: block; white-space: pre-line;"></span>
+              <span>{{ param.help }}</span>
+            </span>
           </div>
         </div>
-      </div>
   {% endfor %}
+      </div>
     </div>
 {% endfor %}
-    <div class="col-md-offset-6 col-md-6">
-      <div class="form-group">
-        <div class="row">
-          <div class="col-sm-offset-3 col-sm-9 text-center">
-            <button type="submit" class="btn btn-primary">Generate</button>
-          </div>
-        </div>
+    <div class="row">
+      <div class="col-md-offset-6 col-md-6 text-center">
+        <button type="submit" class="btn btn-primary">Generate</button>
+        <span class="help-block" style="margin-bottom: 0;">
+          <span id="params_error" class="text-danger small" style="white-space: pre-line;"></span>
+        </span>
       </div>
     </div>
   </div>
 </form>
+
+<div id="instructors">
+</div>
