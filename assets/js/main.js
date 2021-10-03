@@ -258,8 +258,8 @@ function systemd_client_netdev_file(data) {
     return new ConfigFile(path,
 `# On the client, you need two files. Put this into
 #     ${path}
-# and after you're done with both files,
-# restart the systemd-networkd service.
+# and after you're done with both files, run
+#     systemctl daemon-reload && systemctl restart systemd-networkd
 
 [NetDev]
 Name = ${iface}
@@ -283,7 +283,7 @@ function systemd_client_network_file(data) {
 `# This is the second file. Put this into
 #     ${path}
 # and if you're done with the first file already,
-# restart the systemd-networkd service.
+#     systemctl daemon-reload && systemctl restart systemd-networkd
 
 [Match]
 Name = ${iface}
@@ -299,7 +299,8 @@ function systemd_server_netdev_file(data) {
     return new ConfigFile(path,
 `# On the server, add this to
 #     ${path}
-# and restart the systemd-networkd service.
+# and run
+#     systemctl daemon-reload && systemctl restart systemd-networkd
 
 # Previous contents goes here...
 
