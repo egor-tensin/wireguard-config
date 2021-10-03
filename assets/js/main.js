@@ -317,7 +317,9 @@ function nmcli_client_file(data) {
 `# On the client, put this to
 #     ${path}
 # and run
-#     nmcli c reload && nmcli c up ${iface}
+#     chmod 0600 ${path}
+#     nmcli c reload
+#     nmcli c up ${iface}
 
 [connection]
 id=${iface}
@@ -351,7 +353,8 @@ function nmcli_server_file(data) {
 `# On the server, add this to
 #     ${path}
 # and run
-#     nmcli c reload && nmcli c up ${iface}
+#     nmcli c reload
+#     nmcli c up ${iface}
 
 # Previous contents goes here...
 
