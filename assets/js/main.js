@@ -231,8 +231,7 @@ function wg_quick_server_file(data) {
     var path = `/etc/wireguard/${iface}.conf`;
     return new ConfigFile(path,
 `# On the server, add this to ${path} and either restart
-# the wg-quick@${iface} systemd service, or run \`wg syncconf ${iface}
-# ${path}\`.
+# the wg-quick@${iface} systemd service, or run \`wg syncconf ${iface} ${path}\`.
 
 # Previous contents goes here...
 
@@ -269,7 +268,7 @@ function systemd_client_network_file(data) {
     var path = `/etc/systemd/network/${iface}.network`;
     return new ConfigFile(path,
 `# This is the second file. Put this into ${path}
-# and if you're done the first file already, restart the systemd-networkd
+# and if you're done with the first file already, restart the systemd-networkd
 # service.
 
 [Match]
@@ -332,7 +331,7 @@ function nmcli_server_file(data) {
     var path = `/etc/NetworkManager/system-connections/${iface}.nmconnection`;
     return new ConfigFile(path,
 `# On the server, add this to ${path}
-# and run \`nmcli c reload && nmcli c up ${iface}\';
+# and run \`nmcli c reload && nmcli c up ${iface}\`.
 
 # Previous contents goes here...
 
