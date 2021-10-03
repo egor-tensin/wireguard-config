@@ -226,6 +226,7 @@ function wg_quick_client_file(data) {
 
 [Interface]
 PrivateKey = ${data.client_private.value}
+Address = ${data.client_ipv4.value.for_client()}, ${data.client_ipv6.value.for_client()}
 
 [Peer]
 Endpoint = ${data.server_endpoint.value}
@@ -241,9 +242,7 @@ function wg_quick_server_file(data) {
     return new ConfigFile(path,
 `# On the server, add this to
 #     ${path}
-# and either
-#     * restart the wg-quick@${iface} systemd service,
-#     * or run \`wg syncconf ${iface} ${path}\`.
+# and restart the wg-quick@${iface} systemd service.
 
 # Previous contents goes here...
 
