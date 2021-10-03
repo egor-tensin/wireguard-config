@@ -1,6 +1,8 @@
 WireGuard configuration
 =======================
 
+[![Jekyll](https://github.com/egor-tensin/wireguard-config/actions/workflows/jekyll.yml/badge.svg)](https://github.com/egor-tensin/wireguard-config/actions/workflows/jekyll.yml)
+
 Generate WireGuard configuration files.
 Hosted on [GitHub Pages] at https://egor-tensin.github.io/wireguard-config/.
 
