@@ -198,13 +198,21 @@ Data.prototype.hide_error = function() {
     $('#params_error').hide();
 }
 
-var ConfigFile = function(name, contents) {
+function format_pre_text(text) {
+    return $('<pre/>').text(text);
+}
+
+var ConfigFile = function(name, text) {
     this.name = name;
-    this.contents = contents;
+    this.text = text;
 }
 
 ConfigFile.prototype.toString = function() {
-    return this.contents;
+    return this.text;
+}
+
+ConfigFile.prototype.format = function() {
+    return format_pre_text(this.toString());
 }
 
 var Script = function(text) {
@@ -213,6 +221,24 @@ var Script = function(text) {
 
 Script.prototype.toString = function() {
     return this.text;
+}
+
+Script.prototype.format = function() {
+    return format_pre_text(this.toString());
+}
+
+var QRCode = function(text) {
+    this.text = text;
+}
+
+QRCode.prototype.format = function() {
+    var canvas = $('<canvas/>');
+    var qr = new QRious({
+        element: canvas[0],
+        value: this.text,
+        size: 350
+    });
+    return $('<div class="text-center"/>').append(canvas);
 }
 
 function wg_quick_client_file(data) {
@@ -401,7 +427,9 @@ var InstructWgQuick = function() {}
 InstructWgQuick.prototype.name = function() { return 'wg-quick'; }
 
 InstructWgQuick.prototype.for_client = function(data) {
-    return [wg_quick_client_file(data)];
+    var config = wg_quick_client_file(data);
+    var qr = new QRCode(config.text);
+    return [config, qr];
 }
 
 InstructWgQuick.prototype.for_server = function(data) {
@@ -450,7 +478,7 @@ function clear_instructors() {
 function format_instructions(instructions) {
     var container = $('<div/>');
     instructions.forEach(function(instruction) {
-        container.append($('<pre/>').text(instruction.toString()));
+        container.append(instruction.format());
     });
     return container;
 }
