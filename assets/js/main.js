@@ -42,9 +42,9 @@ var IPAddr = function(src, parser) {
 
     this.str = this.addr.toString();
 
+    this.networkID = parser.networkAddressFromCIDR(this.src);
     if (this.addr.kind() == 'ipv4') {
-        var networkID = parser.networkAddressFromCIDR(this.src);
-        if (this.str == networkID) {
+        if (this.str == this.networkID) {
             throw new Error('Please use a real host IP address, not a network identifier.');
         }
         var broadcast = parser.broadcastAddressFromCIDR(this.src);
@@ -54,11 +54,18 @@ var IPAddr = function(src, parser) {
     }
 }
 
-IPAddr.prototype.for_client = function() {
+IPAddr.prototype.address = function() {
     return this.str + '/' + this.netmask;
 }
 
-IPAddr.prototype.for_server = function() {
+IPAddr.prototype.allowed_ips_client = function() {
+    // As of this writing, _every_ tool accepts something like 192.168.0.1/24
+    // here, _except_ for the Android app, which _requires_ the least
+    // significant bits to be zeroed out.
+    return this.networkID + '/' + this.netmask;
+}
+
+IPAddr.prototype.allowed_ips_server = function() {
     if (this.addr.kind() == 'ipv4') {
         var netmask = 32;
     } else if (this.addr.kind() == 'ipv6') {
@@ -252,13 +259,13 @@ function wg_quick_client_file(data) {
 
 [Interface]
 PrivateKey = ${data.client_private.value}
-Address = ${data.client_ipv4.value.for_client()}, ${data.client_ipv6.value.for_client()}
+Address = ${data.client_ipv4.value.address()}, ${data.client_ipv6.value.address()}
 
 [Peer]
 Endpoint = ${data.server_endpoint.value}
 PublicKey = ${data.server_public.value}
 PresharedKey = ${data.server_preshared.value}
-AllowedIPs = ${data.client_ipv4.value.for_client()}, ${data.client_ipv6.value.for_client()}
+AllowedIPs = ${data.client_ipv4.value.allowed_ips_client()}, ${data.client_ipv6.value.allowed_ips_client()}
 PersistentKeepalive = ${persistent_keepalive}
 `);
 }
@@ -275,7 +282,7 @@ function wg_quick_server_file(data) {
 [Peer]
 PublicKey = ${data.client_public.value}
 PresharedKey = ${data.server_preshared.value}
-AllowedIPs = ${data.client_ipv4.value.for_server()}, ${data.client_ipv6.value.for_server()}
+AllowedIPs = ${data.client_ipv4.value.allowed_ips_server()}, ${data.client_ipv6.value.allowed_ips_server()}
 `);
 }
 
@@ -299,7 +306,7 @@ PrivateKey = ${data.client_private.value}
 Endpoint = ${data.server_endpoint.value}
 PublicKey = ${data.server_public.value}
 PresharedKey = ${data.server_preshared.value}
-AllowedIPs = ${data.client_ipv4.value.for_client()}, ${data.client_ipv6.value.for_client()}
+AllowedIPs = ${data.client_ipv4.value.allowed_ips_client()}, ${data.client_ipv6.value.allowed_ips_client()}
 PersistentKeepalive = ${persistent_keepalive}
 `);
 }
@@ -317,8 +324,8 @@ function systemd_client_network_file(data) {
 Name = ${iface}
 
 [Network]
-Address = ${data.client_ipv4.value.for_client()}
-Address = ${data.client_ipv6.value.for_client()}
+Address = ${data.client_ipv4.value.address()}
+Address = ${data.client_ipv6.value.address()}
 `);
 }
 
@@ -336,7 +343,7 @@ function systemd_server_netdev_file(data) {
 [WireGuardPeer]
 PublicKey = ${data.client_public.value}
 PresharedKey = ${data.server_preshared.value}
-AllowedIPs = ${data.client_ipv4.value.for_server()}, ${data.client_ipv6.value.for_server()}
+AllowedIPs = ${data.client_ipv4.value.allowed_ips_server()}, ${data.client_ipv6.value.allowed_ips_server()}
 `);
 }
 
@@ -363,15 +370,15 @@ private-key-flags=0
 endpoint=${data.server_endpoint.value}
 preshared-key=${data.server_preshared.value}
 preshared-key-flags=0
-allowed-ips=${data.client_ipv4.value.for_client()};${data.client_ipv6.value.for_client()};
+allowed-ips=${data.client_ipv4.value.allowed_ips_client()};${data.client_ipv6.value.allowed_ips_client()};
 persistent-keepalive=${persistent_keepalive}
 
 [ipv4]
-address1=${data.client_ipv4.value.for_client()}
+address1=${data.client_ipv4.value.address()}
 method=manual
 
 [ipv6]
-address1=${data.client_ipv6.value.for_client()}
+address1=${data.client_ipv6.value.address()}
 method=manual
 `);
 }
@@ -390,7 +397,7 @@ function nmcli_server_file(data) {
 [wireguard-peer.${data.client_public.value}]
 preshared-key=${data.server_preshared.value}
 preshared-key-flags=0
-allowed-ips=${data.client_ipv4.value.for_server()};${data.client_ipv6.value.for_server()};
+allowed-ips=${data.client_ipv4.value.allowed_ips_server()};${data.client_ipv6.value.allowed_ips_server()};
 `);
 }
 
@@ -405,10 +412,10 @@ function manual_client_script(data) {
 ${shell_info}
 
 ip link add dev ${iface} type wireguard
-ip addr add ${data.client_ipv4.value.for_client()} dev ${iface}
-ip addr add ${data.client_ipv6.value.for_client()} dev ${iface}
+ip addr add ${data.client_ipv4.value.address()} dev ${iface}
+ip addr add ${data.client_ipv6.value.address()} dev ${iface}
 wg set ${iface} private-key <( echo ${data.client_private.value} )
-wg set ${iface} peer ${data.server_public.value} preshared-key <( echo ${data.server_preshared.value} ) endpoint ${data.server_endpoint.value} allowed-ips ${data.client_ipv4.value.for_client()},${data.client_ipv6.value.for_client()}
+wg set ${iface} peer ${data.server_public.value} preshared-key <( echo ${data.server_preshared.value} ) endpoint ${data.server_endpoint.value} allowed-ips ${data.client_ipv4.value.allowed_ips_client()},${data.client_ipv6.value.allowed_ips_client()}
 ip link set ${iface} up
 `);
 }
@@ -418,7 +425,7 @@ function manual_server_script(data) {
 `# On the server, run this to tweak an existing connection.
 ${shell_info}
 
-wg set ${iface} peer ${data.client_public.value} preshared-key <( echo ${data.server_preshared.value} ) allowed-ips ${data.client_ipv4.value.for_server()},${data.client_ipv6.value.for_server()}
+wg set ${iface} peer ${data.client_public.value} preshared-key <( echo ${data.server_preshared.value} ) allowed-ips ${data.client_ipv4.value.allowed_ips_server()},${data.client_ipv6.value.allowed_ips_server()}
 `);
 }
 
