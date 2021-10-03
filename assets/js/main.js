@@ -414,8 +414,13 @@ ${shell_info}
 ip link add dev ${iface} type wireguard
 ip addr add ${data.client_ipv4.value.address()} dev ${iface}
 ip addr add ${data.client_ipv6.value.address()} dev ${iface}
-wg set ${iface} private-key <( echo ${data.client_private.value} )
-wg set ${iface} peer ${data.server_public.value} preshared-key <( echo ${data.server_preshared.value} ) endpoint ${data.server_endpoint.value} allowed-ips ${data.client_ipv4.value.allowed_ips_client()},${data.client_ipv6.value.allowed_ips_client()}
+wg set ${iface} \\
+    private-key <( echo ${data.client_private.value} )
+wg set ${iface} \\
+    peer ${data.server_public.value} \\
+    preshared-key <( echo ${data.server_preshared.value} ) \\
+    endpoint ${data.server_endpoint.value} \\
+    allowed-ips ${data.client_ipv4.value.allowed_ips_client()},${data.client_ipv6.value.allowed_ips_client()}
 ip link set ${iface} up
 `);
 }
@@ -425,7 +430,10 @@ function manual_server_script(data) {
 `# On the server, run this to tweak an existing connection.
 ${shell_info}
 
-wg set ${iface} peer ${data.client_public.value} preshared-key <( echo ${data.server_preshared.value} ) allowed-ips ${data.client_ipv4.value.allowed_ips_server()},${data.client_ipv6.value.allowed_ips_server()}
+wg set ${iface} \\
+    peer ${data.client_public.value} \\
+    preshared-key <( echo ${data.server_preshared.value} ) \\
+    allowed-ips ${data.client_ipv4.value.allowed_ips_server()},${data.client_ipv6.value.allowed_ips_server()}
 `);
 }
 
