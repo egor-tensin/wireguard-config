@@ -212,8 +212,11 @@ Script.prototype.toString = function() {
 function wg_quick_client_file(data) {
     var path = `/etc/wireguard/${iface}.conf`;
     return new ConfigFile(path,
-`# On the client, put this to ${path} and either start the
-# the wg-quick@${iface} systemd service, or run \`wg-quick up ${iface}\`.
+`# On the client, put this to
+#     ${path}
+# and either
+#     * start the wg-quick@${iface} systemd service,
+#     * or run \`wg-quick up ${iface}\`.
 
 [Interface]
 PrivateKey = ${data.client_private.value}
@@ -230,8 +233,11 @@ PersistentKeepalive = ${persistent_keepalive}
 function wg_quick_server_file(data) {
     var path = `/etc/wireguard/${iface}.conf`;
     return new ConfigFile(path,
-`# On the server, add this to ${path} and either restart
-# the wg-quick@${iface} systemd service, or run \`wg syncconf ${iface} ${path}\`.
+`# On the server, add this to
+#     ${path}
+# and either
+#     * restart the wg-quick@${iface} systemd service,
+#     * or run \`wg syncconf ${iface} ${path}\`.
 
 # Previous contents goes here...
 
@@ -245,8 +251,10 @@ AllowedIPs = ${data.client_ipv4.value.for_server()}, ${data.client_ipv6.value.fo
 function systemd_client_netdev_file(data) {
     var path = `/etc/systemd/network/${iface}.netdev`;
     return new ConfigFile(path,
-`# On the client, you need two files. Put this into ${path}
-# and after you're done with both files, restart the systemd-networkd service.
+`# On the client, you need two files. Put this into
+#     ${path}
+# and after you're done with both files,
+# restart the systemd-networkd service.
 
 [NetDev]
 Name = ${iface}
@@ -267,9 +275,10 @@ PersistentKeepalive = ${persistent_keepalive}
 function systemd_client_network_file(data) {
     var path = `/etc/systemd/network/${iface}.network`;
     return new ConfigFile(path,
-`# This is the second file. Put this into ${path}
-# and if you're done with the first file already, restart the systemd-networkd
-# service.
+`# This is the second file. Put this into
+#     ${path}
+# and if you're done with the first file already,
+# restart the systemd-networkd service.
 
 [Match]
 Name = ${iface}
@@ -283,8 +292,9 @@ Address = ${data.client_ipv6.value.for_client()}
 function systemd_server_netdev_file(data) {
     var path = `/etc/systemd/network/${iface}.netdev`;
     return new ConfigFile(path,
-`# On the server, add this to ${path} and restart
-# the systemd-networkd service.
+`# On the server, add this to
+#     ${path}
+# and restart the systemd-networkd service.
 
 # Previous contents goes here...
 
@@ -298,8 +308,10 @@ AllowedIPs = ${data.client_ipv4.value.for_server()}, ${data.client_ipv6.value.fo
 function nmcli_client_file(data) {
     var path = `/etc/NetworkManager/system-connections/${iface}.nmconnection`;
     return new ConfigFile(path,
-`# On the client, put this to ${path}
-# and run \`nmcli c reload && nmcli c up ${iface}\`.
+`# On the client, put this to
+#     ${path}
+# and run
+#     nmcli c reload && nmcli c up ${iface}
 
 [connection]
 id=${iface}
@@ -330,8 +342,10 @@ method=manual
 function nmcli_server_file(data) {
     var path = `/etc/NetworkManager/system-connections/${iface}.nmconnection`;
     return new ConfigFile(path,
-`# On the server, add this to ${path}
-# and run \`nmcli c reload && nmcli c up ${iface}\`.
+`# On the server, add this to
+#     ${path}
+# and run
+#     nmcli c reload && nmcli c up ${iface}
 
 # Previous contents goes here...
 
@@ -345,7 +359,8 @@ allowed-ips=${data.client_ipv4.value.for_server()};${data.client_ipv6.value.for_
 function manual_client_script(data) {
     return new Script(
 `# On the client, run this to set up a connection.
-# Make sure your .bash_history or whatever is secure before running this.
+# Make sure your .bash_history or whatever is
+# secure before running this.
 
 ip link add dev ${iface} type wireguard
 ip addr add ${data.client_ipv4.value.for_client()} dev ${iface}
@@ -359,7 +374,8 @@ ip link set ${iface} up
 function manual_server_script(data) {
     return new Script(
 `# On the server, run this to tweak an existing connection.
-# Make sure your .bash_history or whatever is secure before running this.
+# Make sure your .bash_history or whatever is
+# secure before running this.
 
 wg set ${iface} peer ${data.client_public.value} preshared-key <( echo ${data.server_preshared.value} ) allowed-ips ${data.client_ipv4.value.for_server()},${data.client_ipv6.value.for_server()}
 `);
