@@ -16,18 +16,18 @@ params:
         name: Public key
         placeholder: "Server's public key"
         help: |
-          Query using <code>wg show wg0 public-key</code>.
+          Query using <code>wg show wg0 public-key</code>
       - id: endpoint
         name: Endpoint
         placeholder: "Server's endpoint in the HOST:PORT format"
         help: |
           Server's public IP address or a hostname, accessible from the client.
-          Query the current port using <code>wg show wg0 listen-port</code>.
+          Query the current port using <code>wg show wg0 listen-port</code>
       - id: preshared_key
         name: Preshared key
         placeholder: Preshared key (shared between server and client)
         help: |
-          Generate using <code>wg genpsk</code>.
+          Generate using <code>wg genpsk</code>
   - id: client
     desc: Client
     items:
@@ -35,12 +35,12 @@ params:
         name: Public key
         placeholder: "Client's public key"
         help: |
-          Generate both the private and the public keys using <code>wg genkey | tee private.key | wg pubkey > public.key</code>.
+          Generate both the private and the public keys using <code>wg genkey | tee private.key | wg pubkey > public.key</code>
       - id: private_key
         name: Private key
         placeholder: "Client's private key"
         help: |
-          Unless generated in one go with the public key, generate one using <code>wg genkey</code>.
+          Unless generated in one go with the public key, generate one using <code>wg genkey</code>
       - id: ipv4
         name: IPv4
         placeholder: IPv4 address and netmask, like 192.168.123.5/24
