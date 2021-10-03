@@ -362,11 +362,15 @@ allowed-ips=${data.client_ipv4.value.for_server()};${data.client_ipv6.value.for_
 `);
 }
 
+var shell_info =
+`# Make sure your .bash_history or whatever is
+# secure before running this.
+# Better yet, put into a file and run (possibly, using sudo).`;
+
 function manual_client_script(data) {
     return new Script(
 `# On the client, run this to set up a connection.
-# Make sure your .bash_history or whatever is
-# secure before running this.
+${shell_info}
 
 ip link add dev ${iface} type wireguard
 ip addr add ${data.client_ipv4.value.for_client()} dev ${iface}
@@ -380,8 +384,7 @@ ip link set ${iface} up
 function manual_server_script(data) {
     return new Script(
 `# On the server, run this to tweak an existing connection.
-# Make sure your .bash_history or whatever is
-# secure before running this.
+${shell_info}
 
 wg set ${iface} peer ${data.client_public.value} preshared-key <( echo ${data.server_preshared.value} ) allowed-ips ${data.client_ipv4.value.for_server()},${data.client_ipv6.value.for_server()}
 `);
