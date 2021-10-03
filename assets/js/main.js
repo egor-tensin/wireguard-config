@@ -10,6 +10,9 @@ function parse_endpoint(val) {
     if (val.length == 0) {
         throw new Error('Server endpoint cannot be an empty string.');
     }
+    if (!val.match(/^.+:[0-9]+$/)) {
+        throw new Error('Please specify a host and a port in the HOST:PORT format.');
+    }
     return val;
 }
 
@@ -17,6 +20,9 @@ function parse_key(val) {
     val = val.trim();
     if (val.length == 0) {
         throw new Error('Key as used by WireGuard cannot be an empty string.');
+    }
+    if (!val.match(/^[0-9a-zA-Z+/=]+$/)) {
+        throw new Error('Key as used by WireGuard must be Base64-encoded.');
     }
     return val;
 }
