@@ -20,7 +20,7 @@ remote_theme: egor-tensin/jekyll-theme@937c2703df1dde8a7318cfa9b7318a0bf202b4cc
 # Theme settings
 settings:
   project:
-    name: wireguard-config
+    name: WireGuard configuration
     description: Generate WireGuard configuration files
     license: MIT License
     license_file: LICENSE.txt
