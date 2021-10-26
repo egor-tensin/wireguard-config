@@ -108,6 +108,10 @@ Input.prototype.value = function() {
     return $(this.input_id()).val();
 }
 
+Input.prototype.set = function(value) {
+    $(this.input_id()).val(value);
+}
+
 Input.prototype.show_error = function(msg) {
     $(this.error_id()).text(msg);
     $(this.error_id()).show();
@@ -118,18 +122,28 @@ Input.prototype.hide_error = function() {
 }
 
 var Value = function(name, parser) {
+    this.name = name;
     this.input = new Input(name);
     this.parser = parser;
 
     this.value = null;
     this.error = null;
+}
+
+Value.prototype.parse = function() {
     try {
-        this.value = parser(this.input.value());
+        this.value = this.parser(this.input.value());
         this.input.hide_error();
+        return true;
     } catch (err) {
         this.error = err.message;
         this.input.show_error(this.error);
+        return false;
     }
+}
+
+Value.prototype.set = function(value) {
+    this.input.set(value);
 }
 
 var Endpoint = function(name) {
@@ -161,8 +175,8 @@ IPv6.prototype = Object.create(Value.prototype);
 IPv6.prototype.constructor = IPv6;
 
 var Data = function() {
-    this.server_endpoint  = new Endpoint('server_endpoint');
     this.server_public    = new Key('server_public_key');
+    this.server_endpoint  = new Endpoint('server_endpoint');
     this.server_preshared = new Key('server_preshared_key');
     this.client_public    = new Key('client_public_key');
     this.client_private   = new Key('client_private_key');
@@ -170,34 +184,63 @@ var Data = function() {
     this.client_ipv6      = new IPv6('client_ipv6');
 
     this.values = [
-        this.server_endpoint,
         this.server_public,
+        this.server_endpoint,
         this.server_preshared,
         this.client_public,
         this.client_private,
         this.client_ipv4,
         this.client_ipv6
     ];
-
-    if (this.has_errors()) {
-        this.show_error('Please correct the input errors above first.');
-    } else {
-        this.hide_error();
-    }
 }
 
-Data.prototype.has_errors = function() {
+Data.prototype.set_from_url = function(url) {
+    var url = new URL(url);
+    var params = new URLSearchParams(url.search);
     var has = false;
+
     this.values.forEach(function(value) {
-        if (value.error) {
+        if (params.has(value.name)) {
+            value.set(params.get(value.name));
             has = true;
         }
     });
+
     return has;
 }
 
-Data.prototype.show_error = function(msg) {
-    $('#params_error').text(msg);
+Data.prototype.set_from_this_url = function() {
+    return this.set_from_url(window.location.href);
+};
+
+Data.prototype.get_perma_url = function() {
+    var url = new URL(window.location.href);
+    url.search = '';
+    var params = new URLSearchParams();
+    this.values.forEach(function(value) {
+        params.append(value.name, value.input.value());
+    });
+    url.search = params.toString();
+    return url.toString();
+}
+
+Data.prototype.parse = function() {
+    var success = true;
+    this.values.forEach(function(value) {
+        if (!value.parse()) {
+            success = false;
+        }
+    });
+    if (!success) {
+        this.show_error();
+    } else {
+        this.hide_error();
+    }
+    return success;
+}
+
+Data.prototype.show_error = function() {
+    $('#params_error').text('Please correct the input errors above first.');
     $('#params_error').show();
 }
 
@@ -437,9 +480,66 @@ wg set ${iface} \\
 `);
 }
 
-var GuideWgQuick = function() {}
+var Guide = function(name) {
+    this.name = name;
+}
 
-GuideWgQuick.prototype.name = function() { return 'wg-quick'; }
+Guide.prototype.format = function(data) {
+    var container = $('<div/>');
+    container.append($('<h2/>').text(this.name));
+    return container;
+}
+
+var GuidePermaURL = function() {
+    Guide.call(this, 'Permanent URL');
+}
+
+GuidePermaURL.prototype = Object.create(Guide.prototype);
+GuidePermaURL.prototype.constructor = GuidePermaURL;
+
+GuidePermaURL.prototype.format = function(data) {
+    var container = Guide.prototype.format.call(this, data);
+    container
+        .append($('<p/>').text('Use the following URL to share this configuration. Be careful: it probably contains sensitive data, like your private keys.'))
+        .append($('<pre/>').append($('<a/>', {href: data.get_perma_url()}).text(data.get_perma_url())));
+    return container;
+}
+
+var GuideServerClient = function(name) {
+    Guide.call(this, name);
+}
+
+GuideServerClient.prototype = Object.create(Guide.prototype);
+GuideServerClient.prototype.constructor = GuideServerClient;
+
+GuideServerClient.prototype.for_server = function(data) { return []; }
+GuideServerClient.prototype.for_client = function(data) { return []; }
+
+GuideServerClient.prototype.join_guides = function(guides) {
+    var container = $('<div/>');
+    guides.forEach(function(guide) {
+        container.append(guide.format());
+    });
+    return container;
+}
+
+GuideServerClient.prototype.format = function(data) {
+    var container = Guide.prototype.format.call(this, data);
+    container
+        .append($('<div class="row"/>')
+            .append($('<div class="col-md-6"/>')
+                .append(this.join_guides(this.for_server(data))))
+            .append($('<div class="col-md-6"/>')
+                .append(this.join_guides(this.for_client(data)))));
+    return container;
+}
+
+var GuideWgQuick = function() {
+    GuideServerClient.call(this, 'wg-quick');
+}
+
+GuideWgQuick.prototype = Object.create(GuideServerClient.prototype);
+GuideWgQuick.prototype.constructor = GuideWgQuick;
 
 GuideWgQuick.prototype.for_client = function(data) {
     var config = wg_quick_client_file(data);
@@ -451,20 +551,27 @@ GuideWgQuick.prototype.for_server = function(data) {
     return [wg_quick_server_file(data)];
 }
 
-var GuideSystemd = function() {}
+var GuideSystemd = function() {
+    GuideServerClient.call(this, 'systemd-networkd');
+}
 
-GuideSystemd.prototype.name = function() { return 'systemd-networkd'; }
+GuideSystemd.prototype = Object.create(GuideServerClient.prototype);
+GuideSystemd.prototype.constructor = GuideSystemd;
 
 GuideSystemd.prototype.for_client = function(data) {
     return [systemd_client_netdev_file(data), systemd_client_network_file(data)];
 }
+
 GuideSystemd.prototype.for_server = function(data) {
     return [systemd_server_netdev_file(data)];
 }
 
-var GuideNetworkManager = function() {}
+var GuideNetworkManager = function() {
+    GuideServerClient.call(this, 'NetworkManager');
+}
 
-GuideNetworkManager.prototype.name = function() { return 'NetworkManager'; }
+GuideNetworkManager.prototype = Object.create(GuideServerClient.prototype);
+GuideNetworkManager.prototype.constructor = GuideNetworkManager;
 
 GuideNetworkManager.prototype.for_client = function(data) {
     return [nmcli_client_file(data)];
@@ -474,9 +581,12 @@ GuideNetworkManager.prototype.for_server = function(data) {
     return [nmcli_server_file(data)];
 }
 
-var GuideManual = function() {}
+var GuideManual = function() {
+    GuideServerClient.call(this, 'Manual');
+}
 
-GuideManual.prototype.name = function() { return 'Manual'; }
+GuideManual.prototype = Object.create(GuideServerClient.prototype);
+GuideManual.prototype.constructor = GuideManual;
 
 GuideManual.prototype.for_client = function(data) {
     return [manual_client_script(data)];
@@ -490,41 +600,17 @@ function clear_guides() {
     $('#guides').empty();
 }
 
-function format_guides(guides) {
-    var container = $('<div/>');
-    guides.forEach(function(guide) {
-        container.append(guide.format());
-    });
-    return container;
-}
-
-function format_server_guides(guide, data) {
-    return format_guides(guide.for_server(data));
-}
-
-function format_client_guides(guide, data) {
-    return format_guides(guide.for_client(data));
-}
-
 function add_guide(guide, data) {
-    $('#guides').append($('<div/>')
-        .append($('<h2/>').text(guide.name()))
-        .append($('<div class="row"/>')
-            .append($('<div class="col-md-6"/>')
-                .append(format_server_guides(guide, data)))
-            .append($('<div class="col-md-6"/>')
-                .append(format_client_guides(guide, data)))));
+    $('#guides').append(guide.format(data));
 }
 
-function form_on_submit() {
-    clear_guides();
-
-    var data = new Data();
-    if (data.has_errors()) {
-        return false;
+function guides_from_data(data) {
+    if (!data.parse()) {
+        return;
     }
 
     var guides = [
+        new GuidePermaURL(),
         new GuideWgQuick(),
         new GuideSystemd(),
         new GuideNetworkManager(),
@@ -534,6 +620,24 @@ function form_on_submit() {
     guides.forEach(function(guide) {
         add_guide(guide, data);
     });
+}
+
+function form_on_submit() {
+    clear_guides();
+
+    var data = new Data();
+    guides_from_data(data);
 
     return false;
 }
+
+function main() {
+    var data = new Data();
+    if (data.set_from_this_url()) {
+        guides_from_data(data);
+    }
+}
+
+$(function() {
+    main();
+});
