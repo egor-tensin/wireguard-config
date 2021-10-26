@@ -437,102 +437,102 @@ wg set ${iface} \\
 `);
 }
 
-var InstructWgQuick = function() {}
+var GuideWgQuick = function() {}
 
-InstructWgQuick.prototype.name = function() { return 'wg-quick'; }
+GuideWgQuick.prototype.name = function() { return 'wg-quick'; }
 
-InstructWgQuick.prototype.for_client = function(data) {
+GuideWgQuick.prototype.for_client = function(data) {
     var config = wg_quick_client_file(data);
     var qr = new QRCode(config.text);
     return [config, qr];
 }
 
-InstructWgQuick.prototype.for_server = function(data) {
+GuideWgQuick.prototype.for_server = function(data) {
     return [wg_quick_server_file(data)];
 }
 
-var InstructSystemd = function() {}
+var GuideSystemd = function() {}
 
-InstructSystemd.prototype.name = function() { return 'systemd-networkd'; }
+GuideSystemd.prototype.name = function() { return 'systemd-networkd'; }
 
-InstructSystemd.prototype.for_client = function(data) {
+GuideSystemd.prototype.for_client = function(data) {
     return [systemd_client_netdev_file(data), systemd_client_network_file(data)];
 }
-InstructSystemd.prototype.for_server = function(data) {
+GuideSystemd.prototype.for_server = function(data) {
     return [systemd_server_netdev_file(data)];
 }
 
-var InstructNetworkManager = function() {}
+var GuideNetworkManager = function() {}
 
-InstructNetworkManager.prototype.name = function() { return 'NetworkManager'; }
+GuideNetworkManager.prototype.name = function() { return 'NetworkManager'; }
 
-InstructNetworkManager.prototype.for_client = function(data) {
+GuideNetworkManager.prototype.for_client = function(data) {
     return [nmcli_client_file(data)];
 }
 
-InstructNetworkManager.prototype.for_server = function(data) {
+GuideNetworkManager.prototype.for_server = function(data) {
     return [nmcli_server_file(data)];
 }
 
-var InstructManual = function() {}
+var GuideManual = function() {}
 
-InstructManual.prototype.name = function() { return 'Manual'; }
+GuideManual.prototype.name = function() { return 'Manual'; }
 
-InstructManual.prototype.for_client = function(data) {
+GuideManual.prototype.for_client = function(data) {
     return [manual_client_script(data)];
 }
 
-InstructManual.prototype.for_server = function(data) {
+GuideManual.prototype.for_server = function(data) {
     return [manual_server_script(data)];
 }
 
-function clear_instructors() {
-    $('#instructors').empty();
+function clear_guides() {
+    $('#guides').empty();
 }
 
-function format_instructions(instructions) {
+function format_guides(guides) {
     var container = $('<div/>');
-    instructions.forEach(function(instruction) {
-        container.append(instruction.format());
+    guides.forEach(function(guide) {
+        container.append(guide.format());
     });
     return container;
 }
 
-function format_server_instructions(instructor, data) {
-    return format_instructions(instructor.for_server(data));
+function format_server_guides(guide, data) {
+    return format_guides(guide.for_server(data));
 }
 
-function format_client_instructions(instructor, data) {
-    return format_instructions(instructor.for_client(data));
+function format_client_guides(guide, data) {
+    return format_guides(guide.for_client(data));
 }
 
-function add_instructor(instructor, data) {
-    $('#instructors').append($('<div/>')
-        .append($('<h2/>').text(instructor.name()))
+function add_guide(guide, data) {
+    $('#guides').append($('<div/>')
+        .append($('<h2/>').text(guide.name()))
         .append($('<div class="row"/>')
             .append($('<div class="col-md-6"/>')
-                .append(format_server_instructions(instructor, data)))
+                .append(format_server_guides(guide, data)))
             .append($('<div class="col-md-6"/>')
-                .append(format_client_instructions(instructor, data)))));
+                .append(format_client_guides(guide, data)))));
 }
 
 function form_on_submit() {
-    clear_instructors();
+    clear_guides();
 
     var data = new Data();
     if (data.has_errors()) {
         return false;
     }
 
-    var instructors = [
-        new InstructWgQuick(),
-        new InstructSystemd(),
-        new InstructNetworkManager(),
-        new InstructManual()
+    var guides = [
+        new GuideWgQuick(),
+        new GuideSystemd(),
+        new GuideNetworkManager(),
+        new GuideManual()
     ];
 
-    instructors.forEach(function(instructor) {
-        add_instructor(instructor, data);
+    guides.forEach(function(guide) {
+        add_guide(guide, data);
     });
 
     return false;
