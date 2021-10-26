@@ -8,6 +8,23 @@ Hosted on [GitHub Pages] at https://egor-tensin.github.io/wireguard-config/.
 
 [GitHub Pages]: https://pages.github.com
 
+Easily generate WireGuard client & server configuration for the following
+connection managers:
+
+* [wg-quick],
+* [systemd-networkd],
+* [NetworkManager],
+* `ip` and [wg].
+
+[wg-quick]: https://git.zx2c4.com/wireguard-tools/about/src/man/wg-quick.8
+[systemd-networkd]: https://www.freedesktop.org/software/systemd/man/systemd.network.html
+[NetworkManager]: https://wiki.gnome.org/Projects/NetworkManager
+[wg]: https://man7.org/linux/man-pages/man8/wg.8.html
+
+An example configuration (with bogus key values) can be seen [here].
+
+[here]: https://egor-tensin.github.io/wireguard-config/?server_public_key=a&server_endpoint=b%3A123&server_preshared_key=c&client_public_key=d&client_private_key=e&client_ipv4=192.168.1.1%2F24&client_ipv6=fd%3A%3A%2F48
+
 Development
 -----------
 
