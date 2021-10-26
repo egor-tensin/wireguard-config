@@ -25,6 +25,27 @@ An example configuration (with bogus key values) can be seen [here].
 
 [here]: https://egor-tensin.github.io/wireguard-config/?server_public_key=a&server_endpoint=b%3A123&server_preshared_key=c&client_public_key=d&client_private_key=e&client_ipv4=192.168.1.1%2F24&client_ipv6=fd%3A%3A%2F48
 
+Description
+-----------
+
+WireGuard is incredibly flexible.
+For one thing, there's no built-in notion of a "server" and its "clients".
+However, I believe that there being a central server and a number of clients
+connected to it is a common use-case.
+Adding a client might not be easy, since their configuration is typically
+distributed in a file adhering to a WireGuard-specific format; these files can
+be tedious to write by hand.
+This project tries to make this task easier.
+
+Security
+--------
+
+This page only works on the client side - GitHub Pages doesn't allow
+server-side processing.
+Nothing really prevents me from sending your keys to an external server using
+JavaScript, but you can easily verify that it doesn't happen using your
+browser's debugging tools.
+
 Development
 -----------
 
@@ -61,15 +82,6 @@ be browsed without running an instance of Jekyll's web server.
 One easy workaround is to `wget` the website and convert the links:
 
     wget --no-verbose --recursive --convert-links --adjust-extension -- http://localhost:4000/blog/
-
-Security
---------
-
-This page only works on the client side - GitHub Pages doesn't allow
-server-side processing.
-Nothing really prevents me from sending your keys to an external server using
-JavaScript, but you can easily verify that it doesn't happen using your
-browser's debugging tools.
 
 License
 -------
