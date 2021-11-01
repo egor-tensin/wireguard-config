@@ -69,9 +69,14 @@ configured on interface <code>wg0</code>.
 You can then generate the new client's keys, feed them to this page and it will
 show the configuration that can be easily consumed by the new client.</p>
 {% assign example_url = '?' %}
+{% assign first = true %}
 {% for grp in page.params %}
   {% for param in grp.items %}
-    {% capture example_url %}{{ example_url }}&{{ param.id }}={{ param.example }}{% endcapture %}
+    {% unless first %}
+      {% capture example_url %}{{ example_url }}&{% endcapture %}
+    {% endunless %}
+    {% assign first = false %}
+    {% capture example_url %}{{ example_url }}{{ param.id }}={{ param.example }}{% endcapture %}
   {% endfor %}
 {% endfor %}
     <p>An example configuration (with bogus key values) can be seen
