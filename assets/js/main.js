@@ -175,18 +175,18 @@ IPv6.prototype = Object.create(Value.prototype);
 IPv6.prototype.constructor = IPv6;
 
 var Data = function() {
-    this.server_public    = new Key('server_public_key');
-    this.server_endpoint  = new Endpoint('server_endpoint');
-    this.server_preshared = new Key('server_preshared_key');
-    this.client_public    = new Key('client_public_key');
-    this.client_private   = new Key('client_private_key');
-    this.client_ipv4      = new IPv4('client_ipv4');
-    this.client_ipv6      = new IPv6('client_ipv6');
+    this.server_public   = new Key('server_public');
+    this.server_endpoint = new Endpoint('server_endpoint');
+    this.preshared       = new Key('preshared');
+    this.client_public   = new Key('client_public');
+    this.client_private  = new Key('client_private');
+    this.client_ipv4     = new IPv4('client_ipv4');
+    this.client_ipv6     = new IPv6('client_ipv6');
 
     this.values = [
         this.server_public,
         this.server_endpoint,
-        this.server_preshared,
+        this.preshared,
         this.client_public,
         this.client_private,
         this.client_ipv4,
@@ -307,7 +307,7 @@ Address = ${data.client_ipv4.value.address()}, ${data.client_ipv6.value.address(
 [Peer]
 Endpoint = ${data.server_endpoint.value}
 PublicKey = ${data.server_public.value}
-PresharedKey = ${data.server_preshared.value}
+PresharedKey = ${data.preshared.value}
 AllowedIPs = ${data.client_ipv4.value.allowed_ips_client()}, ${data.client_ipv6.value.allowed_ips_client()}
 PersistentKeepalive = ${persistent_keepalive}
 `);
@@ -324,7 +324,7 @@ function wg_quick_server_file(data) {
 
 [Peer]
 PublicKey = ${data.client_public.value}
-PresharedKey = ${data.server_preshared.value}
+PresharedKey = ${data.preshared.value}
 AllowedIPs = ${data.client_ipv4.value.allowed_ips_server()}, ${data.client_ipv6.value.allowed_ips_server()}
 `);
 }
@@ -348,7 +348,7 @@ PrivateKey = ${data.client_private.value}
 [WireGuardPeer]
 Endpoint = ${data.server_endpoint.value}
 PublicKey = ${data.server_public.value}
-PresharedKey = ${data.server_preshared.value}
+PresharedKey = ${data.preshared.value}
 AllowedIPs = ${data.client_ipv4.value.allowed_ips_client()}, ${data.client_ipv6.value.allowed_ips_client()}
 PersistentKeepalive = ${persistent_keepalive}
 `);
@@ -385,7 +385,7 @@ function systemd_server_netdev_file(data) {
 
 [WireGuardPeer]
 PublicKey = ${data.client_public.value}
-PresharedKey = ${data.server_preshared.value}
+PresharedKey = ${data.preshared.value}
 AllowedIPs = ${data.client_ipv4.value.allowed_ips_server()}, ${data.client_ipv6.value.allowed_ips_server()}
 `);
 }
@@ -411,7 +411,7 @@ private-key-flags=0
 
 [wireguard-peer.${data.server_public.value}]
 endpoint=${data.server_endpoint.value}
-preshared-key=${data.server_preshared.value}
+preshared-key=${data.preshared.value}
 preshared-key-flags=0
 allowed-ips=${data.client_ipv4.value.allowed_ips_client()};${data.client_ipv6.value.allowed_ips_client()};
 persistent-keepalive=${persistent_keepalive}
@@ -438,7 +438,7 @@ function nmcli_server_file(data) {
 # Previous contents goes here...
 
 [wireguard-peer.${data.client_public.value}]
-preshared-key=${data.server_preshared.value}
+preshared-key=${data.preshared.value}
 preshared-key-flags=0
 allowed-ips=${data.client_ipv4.value.allowed_ips_server()};${data.client_ipv6.value.allowed_ips_server()};
 `);
@@ -461,7 +461,7 @@ wg set ${iface} \\
     private-key <( echo ${data.client_private.value} )
 wg set ${iface} \\
     peer ${data.server_public.value} \\
-    preshared-key <( echo ${data.server_preshared.value} ) \\
+    preshared-key <( echo ${data.preshared.value} ) \\
     endpoint ${data.server_endpoint.value} \\
     allowed-ips ${data.client_ipv4.value.allowed_ips_client()},${data.client_ipv6.value.allowed_ips_client()}
 ip link set ${iface} up
@@ -475,7 +475,7 @@ ${shell_info}
 
 wg set ${iface} \\
     peer ${data.client_public.value} \\
-    preshared-key <( echo ${data.server_preshared.value} ) \\
+    preshared-key <( echo ${data.preshared.value} ) \\
     allowed-ips ${data.client_ipv4.value.allowed_ips_server()},${data.client_ipv6.value.allowed_ips_server()}
 `);
 }

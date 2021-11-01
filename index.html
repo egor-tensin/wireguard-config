@@ -13,45 +13,52 @@ params:
   - id: server
     desc: Server
     items:
-      - id: public_key
+      - id: server_public
         name: Public key
         placeholder: "Server's public key"
         help: |
           Query using <code>wg show wg0 public-key</code>
-      - id: endpoint
+        example: a
+      - id: server_endpoint
         name: Endpoint
         placeholder: "Server's endpoint in the HOST:PORT format"
         help: |
           Server's public IP address or a hostname, accessible from the client.
           Query the current port using <code>wg show wg0 listen-port</code>
-      - id: preshared_key
+        example: b:133
+      - id: preshared
         name: Preshared key
         placeholder: Preshared key (shared between server and client)
         help: |
           Generate using <code>wg genpsk</code>
+        example: c
   - id: client
     desc: Client
     items:
-      - id: public_key
+      - id: client_public
         name: Public key
         placeholder: "Client's public key"
         help: |
           Generate both the private and the public keys using <code>wg genkey | tee private.key | wg pubkey > public.key</code>
-      - id: private_key
+        example: d
+      - id: client_private
         name: Private key
         placeholder: "Client's private key"
         help: |
           Unless generated in one go with the public key, generate one using <code>wg genkey</code>
-      - id: ipv4
+        example: e
+      - id: client_ipv4
         name: IPv4
         placeholder: IPv4 address and netmask, like 192.168.123.5/24
         help: |
           IPv4 address to assign to the client and its netmask in the CIDR format.
-      - id: ipv6
+        example: 192.168.1.1%2F24
+      - id: client_ipv6
         name: IPv6
         placeholder: IPv6 address and netmask, like fd01:2345:6789::5/48
         help: |
           IPv6 address to assign to the client and its netmask in the CIDR format.
+        example: fd%3A%3A%2F48
 ---
 <h1>WireGuard configuration</h1>
 
@@ -61,7 +68,12 @@ params:
 configured on interface <code>wg0</code>.
 You can then generate the new client's keys, feed them to this page and it will
 show the configuration that can be easily consumed by the new client.</p>
-{% assign example_url = '?server_public_key=a&server_endpoint=b%3A123&server_preshared_key=c&client_public_key=d&client_private_key=e&client_ipv4=192.168.1.1%2F24&client_ipv6=fd%3A%3A%2F48' %}
+{% assign example_url = '?' %}
+{% for grp in page.params %}
+  {% for param in grp.items %}
+    {% capture example_url %}{{ example_url }}&{{ param.id }}={{ param.example }}{% endcapture %}
+  {% endfor %}
+{% endfor %}
     <p>An example configuration (with bogus key values) can be seen
 <a href="{{ example_url | baseurl }}">here</a>.</p>
   </div>
@@ -79,11 +91,11 @@ show the configuration that can be easily consumed by the new client.</p>
         </div>
   {% for param in grp.items %}
         <div class="form-group">
-          <label for="param_{{ grp.id }}_{{ param.id }}" class="col-sm-3 control-label">{{ param.name }}</label>
+          <label for="param_{{ param.id }}" class="col-sm-3 control-label">{{ param.name }}</label>
           <div class="col-sm-9">
-            <input type="text" class="form-control" id="param_{{ grp.id }}_{{ param.id }}" placeholder="{{ param.placeholder }}" aria-describedby="param_{{ grp.id }}_{{ param.id }}_help">
-            <span id="param_{{ grp.id }}_{{ param.id }}_help" class="help-block" style="margin-bottom: 0;">
-              <span id="param_{{ grp.id }}_{{ param.id }}_error" class="text-danger small" style="display: block; white-space: pre-line; margin-bottom: 5px;"></span>
+            <input type="text" class="form-control" id="param_{{ param.id }}" placeholder="{{ param.placeholder }}" aria-describedby="param_{{ param.id }}_help">
+            <span id="param_{{ param.id }}_help" class="help-block" style="margin-bottom: 0;">
+              <span id="param_{{ param.id }}_error" class="text-danger small" style="display: block; white-space: pre-line; margin-bottom: 5px;"></span>
               <span>{{ param.help }}</span>
             </span>
           </div>
