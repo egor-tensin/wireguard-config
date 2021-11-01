@@ -52,13 +52,13 @@ params:
         placeholder: IPv4 address and netmask, like 192.168.123.5/24
         help: |
           IPv4 address to assign to the client and its netmask in the CIDR format.
-        example: 192.168.1.1%2F24
+        example: 192.168.1.1/24
       - id: client_ipv6
         name: IPv6
         placeholder: IPv6 address and netmask, like fd01:2345:6789::5/48
         help: |
           IPv6 address to assign to the client and its netmask in the CIDR format.
-        example: fd%3A%3A%2F48
+        example: fd::/48
 ---
 <h1>WireGuard configuration</h1>
 
@@ -75,7 +75,7 @@ show the configuration that can be easily consumed by the new client.</p>
   {% endfor %}
 {% endfor %}
     <p>An example configuration (with bogus key values) can be seen
-<a href="{{ example_url | baseurl }}">here</a>.</p>
+<a href="{{ example_url | escape_uri | baseurl }}">here</a>.</p>
   </div>
 </div>
 
