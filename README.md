@@ -16,7 +16,7 @@ connection managers:
 * [NetworkManager],
 * `ip` and [wg].
 
-[wg-quick]: https://git.zx2c4.com/wireguard-tools/about/src/man/wg-quick.8
+[wg-quick]: https://man7.org/linux/man-pages/man8/wg-quick.8.html
 [systemd-networkd]: https://www.freedesktop.org/software/systemd/man/systemd.network.html
 [NetworkManager]: https://wiki.gnome.org/Projects/NetworkManager
 [wg]: https://man7.org/linux/man-pages/man8/wg.8.html
