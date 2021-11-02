@@ -486,7 +486,7 @@ var Guide = function(name) {
 
 Guide.prototype.format = function(data) {
     var container = $('<div/>');
-    container.append($('<h2/>').text(this.name));
+    container.append($('<h2/>').html(this.name));
     return container;
 }
 
@@ -582,7 +582,7 @@ GuideNetworkManager.prototype.for_server = function(data) {
 }
 
 var GuideManual = function() {
-    GuideServerClient.call(this, 'Manual');
+    GuideServerClient.call(this, '<code>ip</code> &amp; <code>wg</code>');
 }
 
 GuideManual.prototype = Object.create(GuideServerClient.prototype);
