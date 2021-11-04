@@ -15,13 +15,12 @@ plugins:
 # jekyll-github-metadata
 repository: egor-tensin/wireguard-config
 # jekyll-remote-theme
-remote_theme: egor-tensin/jekyll-theme@62e6ee584a458044de208236b77e55eb6552744c
+remote_theme: egor-tensin/jekyll-theme@f2f0517c9dc1aa0005563e59c8b730a31a2e04f7
 
 # Theme settings
 settings:
   project:
     name: WireGuard configuration
-    description: Generate WireGuard configuration files
     license: MIT License
     license_file: LICENSE.txt
   author:
