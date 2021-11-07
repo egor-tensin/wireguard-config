@@ -81,7 +81,7 @@ Jekyll doesn't provide native support for generating a static website which can
 be browsed without running an instance of Jekyll's web server.
 One easy workaround is to `wget` the website and convert the links:
 
-    wget --no-verbose --recursive --convert-links --adjust-extension -- http://localhost:4000/blog/
+    wget --no-verbose --recursive --convert-links --adjust-extension -- http://localhost:4000/wireguard-config/
 
 License
 -------
