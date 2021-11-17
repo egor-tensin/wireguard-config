@@ -23,7 +23,7 @@ connection managers:
 
 An example configuration (with bogus key values) can be seen [here].
 
-[here]: https://egor-tensin.github.io/wireguard-config/?server_public=a&server_endpoint=b:133&preshared=c&client_public=d&client_private=e&client_ipv4=192.168.1.1/24&client_ipv6=fd::/48
+[here]: https://egor-tensin.github.io/wireguard-config/?server_public=a&server_endpoint=b:123&preshared=c&client_public=d&client_private=e&client_ipv4=192.168.1.1/24&client_ipv6=fd::/48
 
 Description
 -----------
