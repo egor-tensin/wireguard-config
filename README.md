@@ -70,8 +70,8 @@ Access the website at http://localhost:4000/wireguard-config/.
 
 Jekyll doesn't provide native support for generating a static website which can
 be browsed without running a web server.
-One easy workaround is to `wget` the website and convert the links using
-`make wget`.
+One workaround is to `wget` the website (use `make wget`).
+The truly static version will be downloaded to the .wget/ directory.
 
 License
 -------
