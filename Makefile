@@ -22,6 +22,14 @@ endef
 .PHONY: all
 all: serve
 
+.PHONY: ruby
+ruby:
+	command -v rbenv && rbenv install --skip-existing
+
+.PHONY: deps
+deps: ruby
+	bundle install
+
 .PHONY: build
 build:
 	bundle exec jekyll build --drafts
