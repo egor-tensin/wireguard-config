@@ -4,6 +4,7 @@ baseurl: /wireguard-config
 exclude:
   - Gemfile
   - Gemfile.lock
+  - Makefile
   - README.md
   - vendor/
 
