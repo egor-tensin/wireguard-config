@@ -57,7 +57,7 @@ Make sure you have Ruby and [Bundler] set up.
 * Install dependencies by running `make deps`.
 * Build the website by running `make build`.
 * Launch a local web server by running `make serve`.
-You can then access the website at http://localhost:4000/wireguard-config/.
+Access the website at http://localhost:4000/wireguard-config/.
 
 [jekyll-theme] is used as a remote Jekyll theme.
 
