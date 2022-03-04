@@ -6,9 +6,8 @@ function parse_placeholder(val) {
 
 function parse_positive_integer(src) {
     var val = parseInt(src);
-    if (isNaN(val) || val < 1) {
+    if (isNaN(val) || val < 1)
         throw new Error('Cannot parse as a positive integer.');
-    }
     return val;
 }
 
@@ -18,23 +17,19 @@ function parse_keepalive(src) {
 
 function parse_endpoint(val) {
     val = val.trim();
-    if (val.length == 0) {
+    if (val.length == 0)
         throw new Error('Server endpoint cannot be an empty string.');
-    }
-    if (!val.match(/^.+:[0-9]+$/)) {
+    if (!val.match(/^.+:[0-9]+$/))
         throw new Error('Please specify a host and a port in the HOST:PORT format.');
-    }
     return val;
 }
 
 function parse_key(val) {
     val = val.trim();
-    if (val.length == 0) {
+    if (val.length == 0)
         throw new Error('Key as used by WireGuard cannot be an empty string.');
-    }
-    if (!val.match(/^[0-9a-zA-Z+/=]+$/)) {
+    if (!val.match(/^[0-9a-zA-Z+/=]+$/))
         throw new Error('Key as used by WireGuard must be Base64-encoded.');
-    }
     return val;
 }
 
@@ -55,13 +50,11 @@ var IPAddr = function(src, parser) {
 
     this.networkID = parser.networkAddressFromCIDR(this.src);
     if (this.addr.kind() == 'ipv4') {
-        if (this.str == this.networkID) {
+        if (this.str == this.networkID)
             throw new Error('Please use a real host IP address, not a network identifier.');
-        }
         var broadcast = parser.broadcastAddressFromCIDR(this.src);
-        if (this.str == broadcast) {
+        if (this.str == broadcast)
             throw new Error('Please use a real host IP address, not a broadcast address.');
-        }
     }
 }
 
@@ -77,21 +70,19 @@ IPAddr.prototype.allowed_ips_client = function() {
 }
 
 IPAddr.prototype.allowed_ips_server = function() {
-    if (this.addr.kind() == 'ipv4') {
+    if (this.addr.kind() == 'ipv4')
         var netmask = 32;
-    } else if (this.addr.kind() == 'ipv6') {
+    else if (this.addr.kind() == 'ipv6')
         var netmask = 128;
-    } else {
+    else
         throw new Error('What? Not IPv4, and _not_ IPv6?!');
-    }
     return this.str + '/' + netmask;
 }
 
 function parse_ip(src, parser) {
     src = src.trim();
-    if (src.length == 0) {
+    if (src.length == 0)
         throw new Error('IP address cannot be an empty string.');
-    }
     return new IPAddr(src, parser);
 }
 
@@ -163,9 +154,8 @@ var Value = function(name, parser) {
 Value.prototype.parse = function() {
     try {
         var value = this.input.value();
-        if (!this.optional || value.length > 0) {
+        if (!this.optional || value.length > 0)
             value = this.parser(value);
-        }
         this.set_value(value);
         return true;
     } catch (err) {
@@ -293,11 +283,12 @@ Data.prototype.get_perma_url = function() {
 
 Data.prototype.parse = function() {
     var success = true;
+
     this.values.forEach(function(value) {
-        if (!value.parse()) {
+        if (!value.parse())
             success = false;
-        }
     });
+
     if (success) {
         if (!$('#advanced_params').prop('checked'))
             this.hide_advanced();
@@ -741,18 +732,16 @@ function form_on_submit() {
 
 function advanced_params_on_click(input) {
     var data = new Data();
-    if (input.checked) {
+    if (input.checked)
         data.show_advanced();
-    } else {
+    else
         data.hide_advanced();
-    }
 }
 
 function main() {
     var data = new Data();
-    if (data.set_from_this_url()) {
+    if (data.set_from_this_url())
         guides_from_data(data);
-    }
 }
 
 $(function() {
