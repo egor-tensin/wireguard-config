@@ -73,6 +73,23 @@ be browsed without running a web server.
 One workaround is to `wget` the website (use `make wget`).
 The truly static version will be downloaded to the .wget/ directory.
 
+### Node.js dependencies
+
+For IP address parsing and validation, [ipaddr.js] was used originally.
+It is pre-built for browser use, which is nice; however, it's [buggy].
+
+It was replaced by [ip-address], which is not browser-ready; instead,
+[Browserify] is used to turn it into a suitable .js file
+(`make npm && make bundle`).
+
+This whole situation sucks, but I really want to keep this website static.
+TODO: find other options or wait until ipaddr.js fixes the bug.
+
+[ipaddr.js]: https://github.com/whitequark/ipaddr.js
+[buggy]: https://github.com/whitequark/ipaddr.js/issues/160
+[ip-address]: https://github.com/beaugunderson/ip-address
+[Browserify]: https://browserify.org/
+
 License
 -------
 
