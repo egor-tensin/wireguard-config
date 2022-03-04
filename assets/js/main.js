@@ -33,61 +33,39 @@ function parse_key(val) {
     return val;
 }
 
-var IPAddr = function(src, parser) {
-    this.src = src;
-    this.parser = parser;
-
-    try {
-        var val = parser.parseCIDR(src);
-    } catch (err) {
-        throw new Error('Sorry, IP address validation failed with the following error:\n' + err.message);
-    }
-
-    this.addr = val[0];
-    this.netmask = val[1];
-
-    this.str = this.addr.toString();
-
-    this.networkID = parser.networkAddressFromCIDR(this.src);
-    if (this.addr.kind() == 'ipv4') {
-        if (this.str == this.networkID)
-            throw new Error('Please use a real host IP address, not a network identifier.');
-        var broadcast = parser.broadcastAddressFromCIDR(this.src);
-        if (this.str == broadcast)
-            throw new Error('Please use a real host IP address, not a broadcast address.');
-    }
-}
-
-IPAddr.prototype.address = function() {
-    return this.str + '/' + this.netmask;
-}
-
-IPAddr.prototype.allowed_ips_client = function() {
-    // As of this writing, _every_ tool accepts something like 192.168.0.1/24
-    // here, _except_ for the Android app, which _requires_ the least
-    // significant bits to be zeroed out.
-    return this.networkID + '/' + this.netmask;
-}
-
-IPAddr.prototype.allowed_ips_server = function() {
-    if (this.addr.kind() == 'ipv4')
-        var netmask = 32;
-    else if (this.addr.kind() == 'ipv6')
-        var netmask = 128;
-    else
-        throw new Error('What? Not IPv4, and _not_ IPv6?!');
-    return this.str + '/' + netmask;
-}
-
 function parse_ip(src, parser) {
     src = src.trim();
     if (src.length == 0)
         throw new Error('IP address cannot be an empty string.');
-    return new IPAddr(src, parser);
+
+    try {
+        var result = parser.parseCIDR(src);
+    } catch (err) {
+        throw new Error('Sorry, IP address validation failed with the following error:\n' + err.message);
+    }
+
+    var addr = result[0].toString();
+    var netmask = result[1];
+    var network_id = parser.networkAddressFromCIDR(src);
+
+    return [addr, netmask, network_id];
 }
 
-function parse_ipv4(val) {
-    return parse_ip(val, ipaddr.IPv4);
+function parse_ipv4(src) {
+    var parser = ipaddr.IPv4;
+    var result = parse_ip(src, parser);
+
+    var addr = result[0];
+    var netmask = result[1];
+    var network_id = result[2];
+
+    if (addr == network_id)
+        throw new Error('Please use a real host IP address, not a network identifier.');
+    var broadcast = parser.broadcastAddressFromCIDR(src);
+    if (addr == broadcast)
+        throw new Error('Please use a real host IP address, not a broadcast address.');
+
+    return [addr, netmask, network_id];
 }
 
 function parse_ipv6(val) {
@@ -206,19 +184,53 @@ var Key = function(name) {
 Key.prototype = Object.create(Value.prototype);
 Key.prototype.constructor = Key;
 
-var IPv4 = function(name) {
-    Value.call(this, name, parse_ipv4);
+var IPAddr = function(name, parser) {
+    Value.call(this, name, parser);
 }
 
-IPv4.prototype = Object.create(Value.prototype);
+IPAddr.prototype = Object.create(Value.prototype);
+IPAddr.prototype.constructor = IPAddr;
+
+IPAddr.prototype.set_value = function(value) {
+    Value.prototype.set_value.call(this, value);
+
+    this.addr = this.value[0];
+    this.netmask = this.value[1];
+    this.network_id = this.value[2];
+}
+
+IPAddr.prototype.full_address = function() {
+    return this.addr + '/' + this.netmask;
+}
+
+IPAddr.prototype.allowed_ips_client = function() {
+    // As of this writing, _every_ tool accepts something like 192.168.0.1/24
+    // here, _except_ for the Android app, which _requires_ the least
+    // significant bits to be zeroed out.
+    return this.network_id + '/' + this.netmask;
+}
+
+var IPv4 = function(name) {
+    IPAddr.call(this, name, parse_ipv4);
+}
+
+IPv4.prototype = Object.create(IPAddr.prototype);
 IPv4.prototype.constructor = IPv4;
 
-var IPv6 = function(name) {
-    Value.call(this, name, parse_ipv6);
+IPv4.prototype.allowed_ips_server = function() {
+    return this.addr + '/' + 32;
 }
 
-IPv6.prototype = Object.create(Value.prototype);
+var IPv6 = function(name) {
+    IPAddr.call(this, name, parse_ipv6);
+}
+
+IPv6.prototype = Object.create(IPAddr.prototype);
 IPv6.prototype.constructor = IPv6;
+
+IPv6.prototype.allowed_ips_server = function() {
+    return this.addr + '/' + 128;
+}
 
 var Keepalive = function(name) {
     Value.call(this, name, parse_keepalive);
@@ -378,13 +390,13 @@ function wg_quick_client_file(data) {
 
 [Interface]
 PrivateKey = ${data.client_private.value}
-Address = ${data.client_ipv4.value.address()}, ${data.client_ipv6.value.address()}
+Address = ${data.client_ipv4.full_address()}, ${data.client_ipv6.full_address()}
 
 [Peer]
 Endpoint = ${data.server_endpoint.value}
 PublicKey = ${data.server_public.value}
 PresharedKey = ${data.preshared.value}
-AllowedIPs = ${data.client_ipv4.value.allowed_ips_client()}, ${data.client_ipv6.value.allowed_ips_client()}
+AllowedIPs = ${data.client_ipv4.allowed_ips_client()}, ${data.client_ipv6.allowed_ips_client()}
 `;
 
     if (data.keepalive.is_set()) {
@@ -408,7 +420,7 @@ function wg_quick_server_file(data) {
 [Peer]
 PublicKey = ${data.client_public.value}
 PresharedKey = ${data.preshared.value}
-AllowedIPs = ${data.client_ipv4.value.allowed_ips_server()}, ${data.client_ipv6.value.allowed_ips_server()}
+AllowedIPs = ${data.client_ipv4.allowed_ips_server()}, ${data.client_ipv6.allowed_ips_server()}
 `);
 }
 
@@ -432,7 +444,7 @@ PrivateKey = ${data.client_private.value}
 Endpoint = ${data.server_endpoint.value}
 PublicKey = ${data.server_public.value}
 PresharedKey = ${data.preshared.value}
-AllowedIPs = ${data.client_ipv4.value.allowed_ips_client()}, ${data.client_ipv6.value.allowed_ips_client()}
+AllowedIPs = ${data.client_ipv4.allowed_ips_client()}, ${data.client_ipv6.allowed_ips_client()}
 `;
 
     if (data.keepalive.is_set()) {
@@ -457,8 +469,8 @@ function systemd_client_network_file(data) {
 Name = ${iface}
 
 [Network]
-Address = ${data.client_ipv4.value.address()}
-Address = ${data.client_ipv6.value.address()}
+Address = ${data.client_ipv4.full_address()}
+Address = ${data.client_ipv6.full_address()}
 `);
 }
 
@@ -476,7 +488,7 @@ function systemd_server_netdev_file(data) {
 [WireGuardPeer]
 PublicKey = ${data.client_public.value}
 PresharedKey = ${data.preshared.value}
-AllowedIPs = ${data.client_ipv4.value.allowed_ips_server()}, ${data.client_ipv6.value.allowed_ips_server()}
+AllowedIPs = ${data.client_ipv4.allowed_ips_server()}, ${data.client_ipv6.allowed_ips_server()}
 `);
 }
 
@@ -503,7 +515,7 @@ private-key-flags=0
 endpoint=${data.server_endpoint.value}
 preshared-key=${data.preshared.value}
 preshared-key-flags=0
-allowed-ips=${data.client_ipv4.value.allowed_ips_client()};${data.client_ipv6.value.allowed_ips_client()};
+allowed-ips=${data.client_ipv4.allowed_ips_client()};${data.client_ipv6.allowed_ips_client()};
 `;
     if (data.keepalive.is_set()) {
         contents +=
@@ -514,11 +526,11 @@ allowed-ips=${data.client_ipv4.value.allowed_ips_client()};${data.client_ipv6.va
     contents +=
 `
 [ipv4]
-address1=${data.client_ipv4.value.address()}
+address1=${data.client_ipv4.full_address()}
 method=manual
 
 [ipv6]
-address1=${data.client_ipv6.value.address()}
+address1=${data.client_ipv6.full_address()}
 method=manual
 `;
 
@@ -539,7 +551,7 @@ function nmcli_server_file(data) {
 [wireguard-peer.${data.client_public.value}]
 preshared-key=${data.preshared.value}
 preshared-key-flags=0
-allowed-ips=${data.client_ipv4.value.allowed_ips_server()};${data.client_ipv6.value.allowed_ips_server()};
+allowed-ips=${data.client_ipv4.allowed_ips_server()};${data.client_ipv6.allowed_ips_server()};
 `);
 }
 
@@ -554,15 +566,15 @@ function manual_client_script(data) {
 ${shell_info}
 
 ip link add dev ${iface} type wireguard
-ip addr add ${data.client_ipv4.value.address()} dev ${iface}
-ip addr add ${data.client_ipv6.value.address()} dev ${iface}
+ip addr add ${data.client_ipv4.full_address()} dev ${iface}
+ip addr add ${data.client_ipv6.full_address()} dev ${iface}
 wg set ${iface} \\
     private-key <( echo ${data.client_private.value} )
 wg set ${iface} \\
     peer ${data.server_public.value} \\
     preshared-key <( echo ${data.preshared.value} ) \\
     endpoint ${data.server_endpoint.value} \\
-    allowed-ips ${data.client_ipv4.value.allowed_ips_client()},${data.client_ipv6.value.allowed_ips_client()}
+    allowed-ips ${data.client_ipv4.allowed_ips_client()},${data.client_ipv6.allowed_ips_client()}
 ip link set ${iface} up
 `);
 }
@@ -575,7 +587,7 @@ ${shell_info}
 wg set ${iface} \\
     peer ${data.client_public.value} \\
     preshared-key <( echo ${data.preshared.value} ) \\
-    allowed-ips ${data.client_ipv4.value.allowed_ips_server()},${data.client_ipv6.value.allowed_ips_server()}
+    allowed-ips ${data.client_ipv4.allowed_ips_server()},${data.client_ipv6.allowed_ips_server()}
 `);
 }
 
