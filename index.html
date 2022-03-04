@@ -110,7 +110,7 @@ show the configuration that can be easily consumed by the new client.</p>
           </div>
         </div>
   {% for param in grp.items %}
-        <div class="form-group" id="param_{{ param.id }}_container" {% if param.advanced %}style="display: none;"{% endif %}>
+        <div class="form-group" id="param_{{ param.id }}_container"{% if param.advanced %} style="display: none;"{% endif %}>
           <label for="param_{{ param.id }}" class="col-sm-3 control-label">{{ param.name }}</label>
           <div class="col-sm-9">
             <input type="text" class="form-control" id="param_{{ param.id }}" placeholder="{{ param.placeholder }}" aria-describedby="param_{{ param.id }}_help"{% if param.default != null %} value="{{ param.default }}"{% endif %}>
