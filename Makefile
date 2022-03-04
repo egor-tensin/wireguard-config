@@ -29,6 +29,7 @@ ruby:
 .PHONY: deps
 deps: ruby
 	bundle install
+	npm install
 
 .PHONY: build
 build:
@@ -47,3 +48,9 @@ wget:
 .PHONY: view
 view:
 	xdg-open '$(call escape,$(URL))' &> /dev/null
+
+.PHONY: bundle
+bundle: assets/js/bundle.js
+
+assets/js/bundle.js: package-lock.json
+	npm exec -- browserify --require ip-address --outfile '$(call escape,$@)'

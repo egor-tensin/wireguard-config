@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "browserify": "^17.0.0",
+    "ip-address": "^8.1.0"
+  }
+}

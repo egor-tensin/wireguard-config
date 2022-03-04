@@ -2,11 +2,16 @@
 baseurl: /wireguard-config
 
 exclude:
-  - Gemfile
-  - Gemfile.lock
   - Makefile
   - README.md
+
+  - Gemfile
+  - Gemfile.lock
   - vendor/
+
+  - node_modules/
+  - package.json
+  - package-lock.json
 
 # Plugins
 plugins:

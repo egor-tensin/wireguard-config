@@ -1,2 +1,5 @@
 _site/
 .wget/
+
+node_modules/
+vendor/
