@@ -113,7 +113,7 @@ show the configuration that can be easily consumed by the new client.</p>
         <div class="form-group" id="param_{{ param.id }}_container" {% if param.advanced %}style="display: none;"{% endif %}>
           <label for="param_{{ param.id }}" class="col-sm-3 control-label">{{ param.name }}</label>
           <div class="col-sm-9">
-            <input type="text" class="form-control" id="param_{{ param.id }}" placeholder="{{ param.placeholder }}" aria-describedby="param_{{ param.id }}_help">
+            <input type="text" class="form-control" id="param_{{ param.id }}" placeholder="{{ param.placeholder }}" aria-describedby="param_{{ param.id }}_help"{% if param.default != null %} value="{{ param.default }}"{% endif %}>
             <span id="param_{{ param.id }}_help" class="help-block" style="margin-bottom: 0;">
               <span id="param_{{ param.id }}_error" class="text-danger small" style="display: block; white-space: pre-line; margin-bottom: 5px;"></span>
               <span>{{ param.help }}</span>
