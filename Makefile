@@ -29,7 +29,13 @@ ruby:
 .PHONY: deps
 deps: ruby
 	bundle install
+
+.PHONY: npm
+npm:
 	npm install
+
+.PHONY: all-deps
+all-deps: deps npm
 
 .PHONY: build
 build:
