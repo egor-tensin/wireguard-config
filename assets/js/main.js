@@ -1,8 +1,19 @@
 var iface = 'wg0';
-var persistent_keepalive = 25;
 
 function parse_placeholder(val) {
     return true;
+}
+
+function parse_positive_integer(src) {
+    var val = parseInt(src);
+    if (isNaN(val) || val < 1) {
+        throw new Error('Cannot parse as a positive integer.');
+    }
+    return val;
+}
+
+function parse_keepalive(src) {
+    return parse_positive_integer(src);
 }
 
 function parse_endpoint(val) {
@@ -104,15 +115,32 @@ Input.prototype.error_id = function() {
     return this.input_id() + '_error';
 }
 
+Input.prototype.container_id = function() {
+    return this.input_id() + '_container';
+}
+
 Input.prototype.value = function() {
     return $(this.input_id()).val();
+}
+
+Input.prototype.has_value = function() {
+    return this.value().length > 0;
 }
 
 Input.prototype.set = function(value) {
     $(this.input_id()).val(value);
 }
 
+Input.prototype.show = function() {
+    $(this.container_id()).show();
+}
+
+Input.prototype.hide = function() {
+    $(this.container_id()).hide();
+}
+
 Input.prototype.show_error = function(msg) {
+    this.show();
     $(this.error_id()).text(msg);
     $(this.error_id()).show();
 }
@@ -125,6 +153,8 @@ var Value = function(name, parser) {
     this.name = name;
     this.input = new Input(name);
     this.parser = parser;
+    this.optional = false;
+    this.advanced = false;
 
     this.value = null;
     this.error = null;
@@ -132,18 +162,44 @@ var Value = function(name, parser) {
 
 Value.prototype.parse = function() {
     try {
-        this.value = this.parser(this.input.value());
-        this.input.hide_error();
+        var value = this.input.value();
+        if (!this.optional || value.length > 0) {
+            value = this.parser(value);
+        }
+        this.set_value(value);
         return true;
     } catch (err) {
-        this.error = err.message;
-        this.input.show_error(this.error);
+        this.set_error(err.message);
         return false;
     }
 }
 
+Value.prototype.set_value = function(value) {
+    this.value = value;
+    this.error = null;
+    this.input.hide_error();
+}
+
+Value.prototype.set_error = function(msg) {
+    this.value = null;
+    this.error = msg;
+    this.input.show_error(this.error);
+}
+
+Value.prototype.is_set = function() {
+    return this.input.has_value();
+}
+
 Value.prototype.set = function(value) {
     this.input.set(value);
+}
+
+Value.prototype.show = function() {
+    this.input.show();
+}
+
+Value.prototype.hide = function() {
+    this.input.hide();
 }
 
 var Endpoint = function(name) {
@@ -174,6 +230,15 @@ var IPv6 = function(name) {
 IPv6.prototype = Object.create(Value.prototype);
 IPv6.prototype.constructor = IPv6;
 
+var Keepalive = function(name) {
+    Value.call(this, name, parse_keepalive);
+    this.optional = true;
+    this.advanced = true;
+}
+
+Keepalive.prototype = Object.create(Value.prototype);
+Keepalive.prototype.constructor = Keepalive;
+
 var Data = function() {
     this.server_public   = new Key('server_public');
     this.server_endpoint = new Endpoint('server_endpoint');
@@ -182,6 +247,7 @@ var Data = function() {
     this.client_private  = new Key('client_private');
     this.client_ipv4     = new IPv4('client_ipv4');
     this.client_ipv6     = new IPv6('client_ipv6');
+    this.keepalive       = new Keepalive('keepalive');
 
     this.values = [
         this.server_public,
@@ -190,7 +256,8 @@ var Data = function() {
         this.client_public,
         this.client_private,
         this.client_ipv4,
-        this.client_ipv6
+        this.client_ipv6,
+        this.keepalive
     ];
 }
 
@@ -231,10 +298,12 @@ Data.prototype.parse = function() {
             success = false;
         }
     });
-    if (!success) {
-        this.show_error();
-    } else {
+    if (success) {
+        if (!$('#advanced_params').prop('checked'))
+            this.hide_advanced();
         this.hide_error();
+    } else {
+        this.show_error();
     }
     return success;
 }
@@ -246,6 +315,22 @@ Data.prototype.show_error = function() {
 
 Data.prototype.hide_error = function() {
     $('#params_error').hide();
+}
+
+Data.prototype.show_advanced = function() {
+    this.values.forEach(function(value) {
+        if (!value.advanced)
+            return;
+        value.show();
+    });
+}
+
+Data.prototype.hide_advanced = function() {
+    this.values.forEach(function(value) {
+        if (!value.advanced)
+            return;
+        value.hide();
+    });
 }
 
 function format_pre_text(text) {
@@ -293,7 +378,7 @@ QRCode.prototype.format = function() {
 
 function wg_quick_client_file(data) {
     var path = `/etc/wireguard/${iface}.conf`;
-    return new ConfigFile(path,
+    var contents =
 `# On the client, put this to
 #     ${path}
 # and either
@@ -309,8 +394,15 @@ Endpoint = ${data.server_endpoint.value}
 PublicKey = ${data.server_public.value}
 PresharedKey = ${data.preshared.value}
 AllowedIPs = ${data.client_ipv4.value.allowed_ips_client()}, ${data.client_ipv6.value.allowed_ips_client()}
-PersistentKeepalive = ${persistent_keepalive}
-`);
+`;
+
+    if (data.keepalive.is_set()) {
+        contents +=
+`PersistentKeepalive = ${data.keepalive.value}
+`;
+    }
+
+    return new ConfigFile(path, contents);
 }
 
 function wg_quick_server_file(data) {
@@ -331,7 +423,7 @@ AllowedIPs = ${data.client_ipv4.value.allowed_ips_server()}, ${data.client_ipv6.
 
 function systemd_client_netdev_file(data) {
     var path = `/etc/systemd/network/${iface}.netdev`;
-    return new ConfigFile(path,
+    var contents =
 `# On the client, you need two files. Put this into
 #     ${path}
 # and after you're done with both files, run
@@ -350,8 +442,15 @@ Endpoint = ${data.server_endpoint.value}
 PublicKey = ${data.server_public.value}
 PresharedKey = ${data.preshared.value}
 AllowedIPs = ${data.client_ipv4.value.allowed_ips_client()}, ${data.client_ipv6.value.allowed_ips_client()}
-PersistentKeepalive = ${persistent_keepalive}
-`);
+`;
+
+    if (data.keepalive.is_set()) {
+        contents +=
+`PersistentKeepalive = ${data.keepalive.value}
+`;
+    }
+
+    return new ConfigFile(path, contents);
 }
 
 function systemd_client_network_file(data) {
@@ -392,7 +491,7 @@ AllowedIPs = ${data.client_ipv4.value.allowed_ips_server()}, ${data.client_ipv6.
 
 function nmcli_client_file(data) {
     var path = `/etc/NetworkManager/system-connections/${iface}.nmconnection`;
-    return new ConfigFile(path,
+    var contents =
 `# On the client, put this to
 #     ${path}
 # and run
@@ -414,8 +513,15 @@ endpoint=${data.server_endpoint.value}
 preshared-key=${data.preshared.value}
 preshared-key-flags=0
 allowed-ips=${data.client_ipv4.value.allowed_ips_client()};${data.client_ipv6.value.allowed_ips_client()};
-persistent-keepalive=${persistent_keepalive}
+`;
+    if (data.keepalive.is_set()) {
+        contents +=
+`persistent-keepalive=${data.keepalive.value}
+`;
+    }
 
+    contents +=
+`
 [ipv4]
 address1=${data.client_ipv4.value.address()}
 method=manual
@@ -423,7 +529,9 @@ method=manual
 [ipv6]
 address1=${data.client_ipv6.value.address()}
 method=manual
-`);
+`;
+
+    return new ConfigFile(path, contents);
 }
 
 function nmcli_server_file(data) {
@@ -629,6 +737,15 @@ function form_on_submit() {
     guides_from_data(data);
 
     return false;
+}
+
+function advanced_params_on_click(input) {
+    var data = new Data();
+    if (input.checked) {
+        data.show_advanced();
+    } else {
+        data.hide_advanced();
+    }
 }
 
 function main() {

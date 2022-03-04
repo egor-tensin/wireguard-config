@@ -59,6 +59,14 @@ params:
         help: |
           IPv6 address to assign to the client and its netmask in the CIDR format.
         example: fd::/48
+      - id: keepalive
+        name: Keepalive
+        default: 25
+        placeholder: Seconds between keepalive packets, typically 25
+        help: |
+          Time to wait between sending keepalive packets, seconds.
+        example: 25
+        advanced: true
 ---
 <h1>WireGuard configuration</h1>
 
@@ -95,7 +103,7 @@ show the configuration that can be easily consumed by the new client.</p>
           </div>
         </div>
   {% for param in grp.items %}
-        <div class="form-group">
+        <div class="form-group" id="param_{{ param.id }}_container" {% if param.advanced %}style="display: none;"{% endif %}>
           <label for="param_{{ param.id }}" class="col-sm-3 control-label">{{ param.name }}</label>
           <div class="col-sm-9">
             <input type="text" class="form-control" id="param_{{ param.id }}" placeholder="{{ param.placeholder }}" aria-describedby="param_{{ param.id }}_help">
@@ -110,6 +118,15 @@ show the configuration that can be easily consumed by the new client.</p>
     </div>
 {% endfor %}
     <div class="col-md-offset-6 col-md-6">
+      <div class="form-horizontal">
+        <div class="form-group">
+          <div class="col-sm-offset-3 col-sm-9">
+            <div class="checkbox">
+              <label class="text-muted"><input type="checkbox" id="advanced_params" onClick="advanced_params_on_click(this);">Show advanced parameters</label>
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="row">
         <div class="col-sm-offset-3 col-sm-9 text-center">
           <button type="submit" class="btn btn-primary">Generate</button>
