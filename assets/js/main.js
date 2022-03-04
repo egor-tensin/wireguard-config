@@ -33,43 +33,48 @@ function parse_key(val) {
     return val;
 }
 
+var ip_address_lib = require('ip-address');
+
 function parse_ip(src, parser) {
     src = src.trim();
     if (src.length == 0)
         throw new Error('IP address cannot be an empty string.');
 
     try {
-        var result = parser.parseCIDR(src);
+        var result = new parser(src);
     } catch (err) {
         throw new Error('Sorry, IP address validation failed with the following error:\n' + err.message);
     }
 
-    var addr = result[0].toString();
-    var netmask = result[1];
-    var network_id = parser.networkAddressFromCIDR(src);
+    if (!result.parsedSubnet)
+        throw new Error('Please specify address using the CIDR format (including the netmask).');
+
+    var addr = result.correctForm();
+    var netmask = result.subnetMask;
+    var network_id = result.startAddress().correctForm();
 
     return [addr, netmask, network_id];
 }
 
 function parse_ipv4(src) {
-    var parser = ipaddr.IPv4;
+    var parser = ip_address_lib.Address4;
     var result = parse_ip(src, parser);
 
     var addr = result[0];
     var netmask = result[1];
     var network_id = result[2];
+    var broadcast_addr = new parser(src).endAddress().correctForm();
 
-    if (addr == network_id)
+    if (addr == network_id && netmask != 32)
         throw new Error('Please use a real host IP address, not a network identifier.');
-    var broadcast = parser.broadcastAddressFromCIDR(src);
-    if (addr == broadcast)
+    if (addr == broadcast_addr && netmask != 32)
         throw new Error('Please use a real host IP address, not a broadcast address.');
 
     return [addr, netmask, network_id];
 }
 
 function parse_ipv6(val) {
-    return parse_ip(val, ipaddr.IPv6);
+    return parse_ip(val, ip_address_lib.Address6);
 }
 
 var Input = function(name) {
