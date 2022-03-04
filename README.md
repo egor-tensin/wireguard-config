@@ -77,7 +77,6 @@ The truly static version will be downloaded to the .wget/ directory.
 
 For IP address parsing and validation, [ipaddr.js] was used originally.
 It is pre-built for browser use, which is nice; however, it's [buggy].
-
 It was replaced by [ip-address], which is not browser-ready; instead,
 [Browserify] is used to turn it into a suitable .js file
 (`make npm && make bundle`).
