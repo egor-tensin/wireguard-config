@@ -24,7 +24,7 @@ all: serve
 
 .PHONY: ruby
 ruby:
-	command -v rbenv && rbenv install --skip-existing
+	if command -v rbenv &> /dev/null; then rbenv install --skip-existing; fi
 
 .PHONY: deps
 deps: ruby
