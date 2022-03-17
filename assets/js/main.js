@@ -465,8 +465,7 @@ function make_pre_buttons(path, pre) {
         .append(edit_btn);
 }
 
-function format_pre_text(text, name) {
-    var pre = $('<pre/>').text(text);
+function format_pre_text(pre, name) {
     return $('<div class="pre_container"/>')
         .append(pre)
         .append(make_pre_buttons(name, pre));
@@ -475,28 +474,36 @@ function format_pre_text(text, name) {
 var ConfigFile = function(name, text) {
     this.name = name;
     this.text = text;
-}
-
-ConfigFile.prototype.toString = function() {
-    return this.text;
+    this.pre = $('<pre/>').text(text);
 }
 
 ConfigFile.prototype.format = function() {
-    return format_pre_text(this.toString(), this.name);
+    return format_pre_text(this.pre, this.name);
 }
 
-var QRCode = function(text) {
-    this.text = text;
+var QRCode = function(pre) {
+    this.pre = pre;
 }
 
-QRCode.prototype.format = function() {
+function draw_qr_code(container, text) {
     var canvas = $('<canvas/>');
     var qr = new QRious({
         element: canvas[0],
-        value: this.text,
+        value: text,
         size: 350
     });
-    return $('<div class="text-center"/>').append(canvas);
+    container.append(canvas);
+}
+
+QRCode.prototype.format = function() {
+    var container = $('<div class="text-center"/>');
+    var pre = this.pre;
+    pre.on('blur', function() {
+        container.empty();
+        draw_qr_code(container, pre.text());
+    });
+    draw_qr_code(container, pre.text());
+    return container;
 }
 
 function wg_quick_client_file(data) {
@@ -774,7 +781,7 @@ GuideWgQuick.prototype.constructor = GuideWgQuick;
 
 GuideWgQuick.prototype.for_client = function(data) {
     var config = wg_quick_client_file(data);
-    var qr = new QRCode(config.text);
+    var qr = new QRCode(config.pre);
     return [config, qr];
 }
 
