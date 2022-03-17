@@ -341,16 +341,31 @@ Data.prototype.hide_advanced = function() {
     });
 }
 
+function edit_btn_init(btn) {
+    btn.empty();
+    btn.append('<span class="glyphicon glyphicon-pencil"/>');
+}
+
+function edit_btn_save(btn) {
+    btn.empty();
+    btn.append('<span class="glyphicon glyphicon-floppy-disk"/>');
+}
+
 function edit_btn_on_click(btn, pre) {
     var editable = pre.prop('isContentEditable');
     pre.prop('contentEditable', !editable);
     if (editable) {
-        btn.text('Edit');
+        edit_btn_init(btn);
         btn.blur(); // a.k.a. unfocus
     } else {
-        btn.text('Save');
+        edit_btn_save(btn);
         pre.focus();
     }
+}
+
+function dload_btn_init(btn) {
+    btn.empty();
+    btn.append('<span class="glyphicon glyphicon-download-alt"/>');
 }
 
 function basename(path) {
@@ -372,12 +387,14 @@ function dload_btn_on_click(btn, path, pre) {
 }
 
 function make_pre_buttons(path, pre) {
-    var edit_btn = $('<button class="btn btn-default" type="button"/>').text('Edit');
+    var edit_btn = $('<button class="btn btn-default" type="button" title="Edit"/>');
+    edit_btn_init(edit_btn);
     edit_btn.click(function() {
         edit_btn_on_click(edit_btn, pre);
     });
 
-    var dload_btn = $('<button class="btn btn-default" type="button"/>').text('Download');
+    var dload_btn = $('<button class="btn btn-default" type="button" title="Download"/>');
+    dload_btn_init(dload_btn);
     dload_btn.click(function() {
         dload_btn_on_click(dload_btn, path, pre);
     });
