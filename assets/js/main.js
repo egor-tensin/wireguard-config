@@ -373,7 +373,9 @@ function basename(path) {
 }
 
 function dload_btn_on_click(btn, path, pre) {
-    var blob = new Blob([pre.text()], {type: 'text/plain'});
+    // The type must be application/octet-stream; if it's text/plain, the
+    // Android Chrome appends the .txt suffix to the downloaded file names.
+    var blob = new Blob([pre.text()], {type: 'application/octet-stream'});
     var url = URL.createObjectURL(blob);
 
     var link = $('<a/>');
