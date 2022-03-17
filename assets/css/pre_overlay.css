@@ -6,3 +6,6 @@
   top: 5px;
   right: 5px;
 }
+.pre_buttons button:focus {
+  outline: none;
+}
