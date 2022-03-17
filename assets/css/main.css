@@ -1,0 +1,8 @@
+.pre_container {
+  position: relative;
+}
+.pre_buttons {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+}

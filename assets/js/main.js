@@ -341,8 +341,57 @@ Data.prototype.hide_advanced = function() {
     });
 }
 
-function format_pre_text(text) {
-    return $('<pre/>').text(text);
+function edit_btn_on_click(btn, pre) {
+    var editable = pre.prop('isContentEditable');
+    pre.prop('contentEditable', !editable);
+    if (editable) {
+        btn.text('Edit');
+        btn.blur(); // a.k.a. unfocus
+    } else {
+        btn.text('Save');
+        pre.focus();
+    }
+}
+
+function basename(path) {
+    return path.substring(path.lastIndexOf('/') + 1);
+}
+
+function dload_btn_on_click(btn, path, pre) {
+    var blob = new Blob([pre.text()], {type: 'text/plain'});
+    var url = URL.createObjectURL(blob);
+
+    var link = $('<a/>');
+    link.prop('href', url);
+    link.prop('download', basename(path));
+
+    // Whoever thought of this [0] is fucking crazy:
+    // https://stackoverflow.com/a/36483380/514684
+    // It literally silently does nothing if this is omitted.
+    link[0].click();
+}
+
+function make_pre_buttons(path, pre) {
+    var edit_btn = $('<button class="btn btn-default" type="button"/>').text('Edit');
+    edit_btn.click(function() {
+        edit_btn_on_click(edit_btn, pre);
+    });
+
+    var dload_btn = $('<button class="btn btn-default" type="button"/>').text('Download');
+    dload_btn.click(function() {
+        dload_btn_on_click(dload_btn, path, pre);
+    });
+
+    return $('<div class="pre_buttons btn-group btn-group-xs" role="group"/>')
+        .append(dload_btn)
+        .append(edit_btn);
+}
+
+function format_pre_text(text, name) {
+    var pre = $('<pre/>').text(text);
+    return $('<div class="pre_container"/>')
+        .append(pre)
+        .append(make_pre_buttons(name, pre));
 }
 
 var ConfigFile = function(name, text) {
@@ -355,19 +404,7 @@ ConfigFile.prototype.toString = function() {
 }
 
 ConfigFile.prototype.format = function() {
-    return format_pre_text(this.toString());
-}
-
-var Script = function(text) {
-    this.text = text;
-}
-
-Script.prototype.toString = function() {
-    return this.text;
-}
-
-Script.prototype.format = function() {
-    return format_pre_text(this.toString());
+    return format_pre_text(this.toString(), this.name);
 }
 
 var QRCode = function(text) {
@@ -566,7 +603,7 @@ var shell_info =
 # Better yet, put into a file and run (possibly, using sudo).`;
 
 function manual_client_script(data) {
-    return new Script(
+    return new ConfigFile('client_setup.sh',
 `# On the client, run this to set up a connection.
 ${shell_info}
 
@@ -585,7 +622,7 @@ ip link set ${iface} up
 }
 
 function manual_server_script(data) {
-    return new Script(
+    return new ConfigFile('server_setup.sh',
 `# On the server, run this to tweak an existing connection.
 ${shell_info}
 
