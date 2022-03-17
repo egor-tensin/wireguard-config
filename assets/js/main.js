@@ -386,6 +386,60 @@ function dload_btn_on_click(btn, path, pre) {
     link[0].click();
 }
 
+function copy_to_clipboard(elem) {
+    // This is rather neat, thanks:
+    // https://stackoverflow.com/a/22581382/514684
+
+    // Apparently, you can only do execCommand('copy') from <input> and
+    // <textarea> elements. Another stupidity, I'm so surprised.
+    var is_input = elem.tagName === 'INPUT' || elem.tagName === 'TEXTAREA';
+    var orig_select_start, orig_select_end;
+
+    if (is_input) {
+        var target = elem;
+        orig_select_start = elem.selectionStart;
+        orig_select_end = elem.selectionEnd;
+    } else {
+        var target = document.createElement('textarea');
+        target.textContent = elem.textContent;
+        document.body.appendChild(target);
+    }
+
+    var current_focus = document.activeElement;
+    target.focus();
+    target.setSelectionRange(0, target.value.length);
+
+    var succeed;
+    try {
+        // Supposedly, this is deprecated. But the "proper" method sucks balls,
+        // so I'm using this one:
+        // https://stackoverflow.com/a/30810322/514684
+        succeed = document.execCommand('copy');
+    } catch (e) {
+        succeed = false;
+    }
+
+    if (current_focus && typeof current_focus.focus === "function") {
+        current_focus.focus();
+    }
+
+    if (is_input) {
+        elem.setSelectionRange(orig_select_start, orig_select_end);
+    } else {
+        document.body.removeChild(target);
+    }
+    return succeed;
+}
+
+function copy_btn_init(btn) {
+    btn.empty();
+    btn.append('<span class="glyphicon glyphicon-copy"/>');
+}
+
+function copy_btn_on_click(btn, pre) {
+    copy_to_clipboard(pre[0]);
+}
+
 function make_pre_buttons(path, pre) {
     var edit_btn = $('<button class="btn btn-default" type="button" title="Edit"/>');
     edit_btn_init(edit_btn);
@@ -399,7 +453,14 @@ function make_pre_buttons(path, pre) {
         dload_btn_on_click(dload_btn, path, pre);
     });
 
+    var copy_btn = $('<button class="btn btn-default" type="button" title="Copy"/>');
+    copy_btn_init(copy_btn);
+    copy_btn.click(function() {
+        copy_btn_on_click(copy_btn, pre);
+    });
+
     return $('<div class="pre_buttons btn-group btn-group-xs" role="group"/>')
+        .append(copy_btn)
         .append(dload_btn)
         .append(edit_btn);
 }
