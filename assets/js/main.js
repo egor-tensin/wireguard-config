@@ -637,6 +637,19 @@ var catchall_ipv6 = '::/0';
 
 function wg_quick_client_file(data) {
     var path = `/etc/wireguard/${iface}.conf`;
+
+    var dns = '';
+    var allowed_ips = `${data.client_ipv4.allowed_ips_client()}, ${data.client_ipv6.allowed_ips_client()}`;
+    var keepalive = '';
+
+    if (data.tunnel_everything.value) {
+        dns = `DNS = ${(data.dns_ipv4.value.concat(data.dns_ipv6.value)).join(',')}\n`;
+        allowed_ips = `${catchall_ipv4}, ${catchall_ipv6}`;
+    }
+    if (data.keepalive.is_set()) {
+        keepalive = `PersistentKeepalive = ${data.keepalive.value}\n`;
+    }
+
     var contents =
 `# On the client, put this to
 #     ${path}
@@ -647,44 +660,21 @@ function wg_quick_client_file(data) {
 [Interface]
 PrivateKey = ${data.client_private.value}
 Address = ${data.client_ipv4.full_address()}, ${data.client_ipv6.full_address()}
-`;
-
-    if (data.tunnel_everything.value) {
-        contents +=
-`DNS = ${(data.dns_ipv4.value.concat(data.dns_ipv6.value)).join(',')}
-`;
-    }
-
-    contents +=
-`
+${dns}
 [Peer]
 Endpoint = ${data.server_endpoint.value}
 PublicKey = ${data.server_public.value}
 PresharedKey = ${data.preshared.value}
-`;
-
-    if (data.tunnel_everything.value) {
-        contents +=
-`AllowedIPs = ${catchall_ipv4}, ${catchall_ipv6}
-`;
-    } else {
-        contents +=
-`AllowedIPs = ${data.client_ipv4.allowed_ips_client()}, ${data.client_ipv6.allowed_ips_client()}
-`;
-    }
-
-    if (data.keepalive.is_set()) {
-        contents +=
-`PersistentKeepalive = ${data.keepalive.value}
-`;
-    }
+AllowedIPs = ${allowed_ips}
+${keepalive}`;
 
     return new ConfigFile(path, contents);
 }
 
 function wg_quick_server_file(data) {
     var path = `/etc/wireguard/${iface}.conf`;
-    return new ConfigFile(path,
+
+    var contents =
 `# On the server, add this to
 #     ${path}
 # and restart the wg-quick@${iface} systemd service.
@@ -695,11 +685,26 @@ function wg_quick_server_file(data) {
 PublicKey = ${data.client_public.value}
 PresharedKey = ${data.preshared.value}
 AllowedIPs = ${data.client_ipv4.allowed_ips_server()}, ${data.client_ipv6.allowed_ips_server()}
-`);
+`;
+
+    return new ConfigFile(path, contents);
 }
 
 function systemd_client_netdev_file(data) {
     var path = `/etc/systemd/network/${iface}.netdev`;
+
+    var fwmark = '';
+    var allowed_ips = `${data.client_ipv4.allowed_ips_client()}, ${data.client_ipv6.allowed_ips_client()}`;
+    var keepalive = '';
+
+    if (data.tunnel_everything.value) {
+        fwmark = `FirewallMark = 0x8888\n`;
+        allowed_ips = `${catchall_ipv4}, ${catchall_ipv6}`;
+    }
+    if (data.keepalive.is_set()) {
+        keepalive = `PersistentKeepalive = ${data.keepalive.value}\n`;
+    }
+
     var contents =
 `# On the client, you need two files. Put this into
 #     ${path}
@@ -713,43 +718,41 @@ Kind = wireguard
 
 [WireGuard]
 PrivateKey = ${data.client_private.value}
-`;
-
-    if (data.tunnel_everything.value) {
-        contents +=
-`FirewallMark = 0x8888
-`;
-    }
-
-    contents +=
-`
+${fwmark}
 [WireGuardPeer]
 Endpoint = ${data.server_endpoint.value}
 PublicKey = ${data.server_public.value}
 PresharedKey = ${data.preshared.value}
-`;
-
-    if (data.tunnel_everything.value) {
-        contents +=
-`AllowedIPs = ${catchall_ipv4}, ${catchall_ipv6}
-`;
-    } else {
-        contents +=
-`AllowedIPs = ${data.client_ipv4.allowed_ips_client()}, ${data.client_ipv6.allowed_ips_client()}
-`;
-    }
-
-    if (data.keepalive.is_set()) {
-        contents +=
-`PersistentKeepalive = ${data.keepalive.value}
-`;
-    }
+AllowedIPs = ${allowed_ips}
+${keepalive}`;
 
     return new ConfigFile(path, contents);
 }
 
 function systemd_client_network_file(data) {
     var path = `/etc/systemd/network/${iface}.network`;
+
+    var dns = '';
+
+    if (data.tunnel_everything.value) {
+        data.dns_ipv4.value.forEach(function(val) {
+            dns += `DNS = ${val}\n`;
+        });
+        data.dns_ipv6.value.forEach(function(val) {
+            dns += `DNS = ${val}\n`;
+        });
+        dns +=
+`Domains = ~.
+DNSDefaultRoute = true
+
+[RoutingPolicyRule]
+FirewallMark = 0x8888
+InvertRule = true
+Table = 1000
+Priority = 10
+`;
+    }
+
     var contents =
 `# This is the second file. Put this into
 #     ${path}
@@ -763,39 +766,17 @@ Name = ${iface}
 [Network]
 Address = ${data.client_ipv4.full_address()}
 Address = ${data.client_ipv6.full_address()}
-`;
+${dns}`;
 
-    if (data.tunnel_everything.value) {
-        data.dns_ipv4.value.forEach(function(val) {
-            contents +=
-`DNS = ${val}
-`;
-        });
-        data.dns_ipv6.value.forEach(function(val) {
-            contents +=
-`DNS = ${val}
-`;
-        });
-        contents +=
-`Domains = ~.
-DNSDefaultRoute = true
-
-[RoutingPolicyRule]
-FirewallMark = 0x8888
-InvertRule = true
-Table = 1000
-Priority = 10
-`;
-    }
-
-    // I know this doesn't work, but I don't care, systemd-networkd is a
+    // I know the above doesn't work, but I don't care, systemd-networkd is a
     // fucking nightmare.
     return new ConfigFile(path, contents);
 }
 
 function systemd_server_netdev_file(data) {
     var path = `/etc/systemd/network/${iface}.netdev`;
-    return new ConfigFile(path,
+
+    var contents =
 `# On the server, add this to
 #     ${path}
 # and run
@@ -808,11 +789,36 @@ function systemd_server_netdev_file(data) {
 PublicKey = ${data.client_public.value}
 PresharedKey = ${data.preshared.value}
 AllowedIPs = ${data.client_ipv4.allowed_ips_server()}, ${data.client_ipv6.allowed_ips_server()}
-`);
+`;
+
+    return new ConfigFile(path, contents);
 }
 
 function nmcli_client_file(data) {
     var path = `/etc/NetworkManager/system-connections/${iface}.nmconnection`;
+
+    var allowed_ips = `${data.client_ipv4.allowed_ips_client()};${data.client_ipv6.allowed_ips_client()};`;
+    var dns4 = '';
+    var dns6 = '';
+    var keepalive = '';
+
+    if (data.tunnel_everything.value) {
+        allowed_ips = `${catchall_ipv4};${catchall_ipv6};`;
+        dns4 =
+`dns=${data.dns_ipv4.value.join(';')};
+dns-priority=-10
+dns-search=~;
+`;
+        dns6 =
+`dns=${data.dns_ipv6.value.join(';')};
+dns-priority=-10
+dns-search=~;
+`;
+    }
+    if (data.keepalive.is_set()) {
+        keepalive = `persistent-keepalive=${data.keepalive.value}\n`;
+    }
+
     var contents =
 `# On the client, put this to
 #     ${path}
@@ -834,58 +840,24 @@ private-key-flags=0
 endpoint=${data.server_endpoint.value}
 preshared-key=${data.preshared.value}
 preshared-key-flags=0
-`;
-    if (data.tunnel_everything.value) {
-        contents +=
-`allowed-ips=${catchall_ipv4};${catchall_ipv6};
-`;
-    } else {
-        contents +=
-`allowed-ips=${data.client_ipv4.allowed_ips_client()};${data.client_ipv6.allowed_ips_client()};
-`;
-    }
-    if (data.keepalive.is_set()) {
-        contents +=
-`persistent-keepalive=${data.keepalive.value}
-`;
-    }
-
-    contents +=
-`
+allowed-ips=${allowed_ips}
+${keepalive}
 [ipv4]
 address1=${data.client_ipv4.full_address()}
 method=manual
-`;
-
-    if (data.tunnel_everything.value) {
-        contents +=
-`dns=${data.dns_ipv4.value.join(';')};
-dns-priority=-10
-dns-search=~;
-`;
-    }
-
-    contents +=
-`
+${dns4}
 [ipv6]
 address1=${data.client_ipv6.full_address()}
 method=manual
-`;
-
-    if (data.tunnel_everything.value) {
-        contents +=
-`dns=${data.dns_ipv6.value.join(';')};
-dns-priority=-10
-dns-search=~;
-`;
-    }
+${dns6}`;
 
     return new ConfigFile(path, contents);
 }
 
 function nmcli_server_file(data) {
     var path = `/etc/NetworkManager/system-connections/${iface}.nmconnection`;
-    return new ConfigFile(path,
+
+    var contents =
 `# On the server, add this to
 #     ${path}
 # and run
@@ -898,7 +870,9 @@ function nmcli_server_file(data) {
 preshared-key=${data.preshared.value}
 preshared-key-flags=0
 allowed-ips=${data.client_ipv4.allowed_ips_server()};${data.client_ipv6.allowed_ips_server()};
-`);
+`;
+
+    return new ConfigFile(path, contents);
 }
 
 var shell_info =
@@ -907,6 +881,14 @@ var shell_info =
 # Better yet, put into a file and run (possibly, using sudo).`;
 
 function manual_client_script(data) {
+    var path = 'client_setup.sh';
+
+    var allowed_ips = `${data.client_ipv4.allowed_ips_client()},${data.client_ipv6.allowed_ips_client()}`;
+
+    if (data.tunnel_everything.value) {
+        allowed_ips = `${catchall_ipv4},${catchall_ipv6}`;
+    }
+
     var contents =
 `# On the client, run this to set up a connection.
 ${shell_info}
@@ -920,25 +902,17 @@ wg set ${iface} \\
     peer ${data.server_public.value} \\
     preshared-key <( echo ${data.preshared.value} ) \\
     endpoint ${data.server_endpoint.value} \\
+    allowed-ips ${allowed_ips}
+ip link set ${iface} up
 `;
-    if (data.tunnel_everything.value) {
-        contents +=
-`    allowed-ips ${catchall_ipv4},${catchall_ipv6}
-`;
-    } else {
-        contents +=
-`    allowed-ips ${data.client_ipv4.allowed_ips_client()},${data.client_ipv6.allowed_ips_client()}
-`;
-    }
 
-    contents +=
-`ip link set ${iface} up
-`;
-    return new ConfigFile('client_setup.sh', contents);
+    return new ConfigFile(path, contents);
 }
 
 function manual_server_script(data) {
-    return new ConfigFile('server_setup.sh',
+    var path = 'server_setup.sh';
+
+    var contents =
 `# On the server, run this to tweak an existing connection.
 ${shell_info}
 
@@ -946,7 +920,9 @@ wg set ${iface} \\
     peer ${data.client_public.value} \\
     preshared-key <( echo ${data.preshared.value} ) \\
     allowed-ips ${data.client_ipv4.allowed_ips_server()},${data.client_ipv6.allowed_ips_server()}
-`);
+`;
+
+    return new ConfigFile(path, contents);
 }
 
 var Guide = function(name) {
