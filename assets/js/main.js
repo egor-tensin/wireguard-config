@@ -1,7 +1,30 @@
 var iface = 'wg0';
 
 function parse_placeholder(val) {
-    return true;
+    return val;
+}
+
+function parse_boolean(val) {
+    if (val === 'true')
+        return true;
+    if (val === 'false')
+        return false;
+    throw new Error('Cannot parse as a boolean.');
+}
+
+function parse_boolean_or_string(val) {
+    if (typeof val == 'boolean') {
+        return val;
+    }
+    return parse_boolean(val);
+}
+
+function try_parse_boolean_or_string(val) {
+    try {
+        return parse_boolean_or_string(val);
+    } catch (err) {
+        return null;
+    }
 }
 
 function parse_positive_integer(src) {
@@ -13,6 +36,10 @@ function parse_positive_integer(src) {
 
 function parse_keepalive(src) {
     return parse_positive_integer(src);
+}
+
+function parse_tunnel_everything(src) {
+    return parse_boolean_or_string(src);
 }
 
 function parse_endpoint(val) {
@@ -35,7 +62,7 @@ function parse_key(val) {
 
 var ip_address_lib = require('ip-address');
 
-function parse_ip(src, parser) {
+function parse_ip_internal(src, parser) {
     src = src.trim();
     if (src.length == 0)
         throw new Error('IP address cannot be an empty string.');
@@ -45,6 +72,20 @@ function parse_ip(src, parser) {
     } catch (err) {
         throw new Error('Sorry, IP address validation failed with the following error:\n' + err.message);
     }
+    return result;
+}
+
+function parse_ip(src, parser) {
+    var result = parse_ip_internal(src, parser);
+
+    if (result.parsedSubnet)
+        throw new Error('Please specify address without the netmask.')
+
+    return result.correctForm();
+}
+
+function parse_ip_cidr(src, parser) {
+    var result = parse_ip_internal(src, parser);
 
     if (!result.parsedSubnet)
         throw new Error('Please specify address using the CIDR format (including the netmask).');
@@ -57,8 +98,13 @@ function parse_ip(src, parser) {
 }
 
 function parse_ipv4(src) {
+    var result = parse_ip(src, ip_address_lib.Address4);
+    return result;
+}
+
+function parse_ipv4_cidr(src) {
     var parser = ip_address_lib.Address4;
-    var result = parse_ip(src, parser);
+    var result = parse_ip_cidr(src, ip_address_lib.Address4);
 
     var addr = result[0];
     var netmask = result[1];
@@ -70,15 +116,36 @@ function parse_ipv4(src) {
     if (addr == broadcast_addr && netmask != 32)
         throw new Error('Please use a real host IP address, not a broadcast address.');
 
-    return [addr, netmask, network_id];
+    return result;
 }
 
 function parse_ipv6(val) {
     return parse_ip(val, ip_address_lib.Address6);
 }
 
+function parse_ipv6_cidr(val) {
+    return parse_ip_cidr(val, ip_address_lib.Address6);
+}
+
+function parse_ip_list(val, addr_parser) {
+    var parts = val.split(/, */);
+    var result = [];
+    parts.forEach(function(part) {
+        result.push(addr_parser(part));
+    });
+    return result;
+}
+
 var Input = function(name) {
     this.name = name;
+
+    if (this.is_checkbox()) {
+        // Keep the checked property and the value consistent.
+        $(this.input_id()).change(function(evt) {
+            var elem = evt.target;
+            elem.value = elem.checked;
+        });
+    }
 }
 
 Input.prototype.input_id = function() {
@@ -93,6 +160,10 @@ Input.prototype.container_id = function() {
     return this.input_id() + '_container';
 }
 
+Input.prototype.is_checkbox = function() {
+    return $(this.input_id()).attr('type') == 'checkbox';
+}
+
 Input.prototype.value = function() {
     return $(this.input_id()).val();
 }
@@ -102,6 +173,8 @@ Input.prototype.has_value = function() {
 }
 
 Input.prototype.set = function(value) {
+    if (this.is_checkbox() && try_parse_boolean_or_string(value))
+        $(this.input_id()).prop('checked', true);
     $(this.input_id()).val(value);
 }
 
@@ -135,10 +208,23 @@ var Value = function(name, parser) {
 }
 
 Value.prototype.parse = function() {
+    return this.parse_from(this.input.value());
+}
+
+Value.prototype.parse_from = function(src) {
     try {
-        var value = this.input.value();
-        if (!this.optional || value.length > 0)
-            value = this.parser(value);
+        var value = src;
+        switch (typeof value) {
+            case 'boolean':
+                value = this.parser(value);
+                break;
+            default:
+                if (this.optional && value.length == 0)
+                    break;
+                value = this.parser(value);
+                break;
+        }
+        this.input.set(src);
         this.set_value(value);
         return true;
     } catch (err) {
@@ -161,10 +247,6 @@ Value.prototype.set_error = function(msg) {
 
 Value.prototype.is_set = function() {
     return this.input.has_value();
-}
-
-Value.prototype.set = function(value) {
-    this.input.set(value);
 }
 
 Value.prototype.show = function() {
@@ -216,7 +298,7 @@ IPAddr.prototype.allowed_ips_client = function() {
 }
 
 var IPv4 = function(name) {
-    IPAddr.call(this, name, parse_ipv4);
+    IPAddr.call(this, name, parse_ipv4_cidr);
 }
 
 IPv4.prototype = Object.create(IPAddr.prototype);
@@ -227,7 +309,7 @@ IPv4.prototype.allowed_ips_server = function() {
 }
 
 var IPv6 = function(name) {
-    IPAddr.call(this, name, parse_ipv6);
+    IPAddr.call(this, name, parse_ipv6_cidr);
 }
 
 IPv6.prototype = Object.create(IPAddr.prototype);
@@ -246,6 +328,42 @@ var Keepalive = function(name) {
 Keepalive.prototype = Object.create(Value.prototype);
 Keepalive.prototype.constructor = Keepalive;
 
+var TunnelEverything = function(name) {
+    Value.call(this, name, parse_tunnel_everything);
+    this.optional = true;
+    this.advanced = true;
+}
+
+TunnelEverything.prototype = Object.create(Value.prototype);
+TunnelEverything.prototype.constructor = TunnelEverything;
+
+var IPAddrList = function(name, parser) {
+    Value.call(this, name, function(val) {
+        return parse_ip_list(val, parser);
+    });
+}
+
+IPAddrList.prototype = Object.create(Value.prototype);
+IPAddrList.prototype.constructor = IPAddrList;
+
+var DNS_IPv4 = function(name) {
+    IPAddrList.call(this, name, parse_ipv4);
+    this.optional = true;
+    this.advanced = true;
+}
+
+DNS_IPv4.prototype = Object.create(IPAddrList.prototype);
+DNS_IPv4.prototype.constructor = DNS_IPv4;
+
+var DNS_IPv6 = function(name) {
+    IPAddrList.call(this, name, parse_ipv6);
+    this.optional = true;
+    this.advanced = true;
+}
+
+DNS_IPv6.prototype = Object.create(IPAddrList.prototype);
+DNS_IPv6.prototype.constructor = DNS_IPv6;
+
 var Data = function() {
     this.server_public   = new Key('server_public');
     this.server_endpoint = new Endpoint('server_endpoint');
@@ -255,6 +373,9 @@ var Data = function() {
     this.client_ipv4     = new IPv4('client_ipv4');
     this.client_ipv6     = new IPv6('client_ipv6');
     this.keepalive       = new Keepalive('keepalive');
+    this.tunnel_everything = new TunnelEverything('tunnel_everything');
+    this.dns_ipv4        = new DNS_IPv4('dns_ipv4');
+    this.dns_ipv6        = new DNS_IPv6('dns_ipv6');
 
     this.values = [
         this.server_public,
@@ -264,7 +385,10 @@ var Data = function() {
         this.client_private,
         this.client_ipv4,
         this.client_ipv6,
-        this.keepalive
+        this.keepalive,
+        this.tunnel_everything,
+        this.dns_ipv4,
+        this.dns_ipv6
     ];
 }
 
@@ -275,8 +399,8 @@ Data.prototype.set_from_url = function(url) {
 
     this.values.forEach(function(value) {
         if (params.has(value.name)) {
-            value.set(params.get(value.name));
             has = true;
+            value.input.set(params.get(value.name));
         }
     });
 
@@ -508,6 +632,9 @@ QRCode.prototype.format = function() {
     return container;
 }
 
+var catchall_ipv4 = '0.0.0.0/0';
+var catchall_ipv6 = '::/0';
+
 function wg_quick_client_file(data) {
     var path = `/etc/wireguard/${iface}.conf`;
     var contents =
@@ -520,13 +647,31 @@ function wg_quick_client_file(data) {
 [Interface]
 PrivateKey = ${data.client_private.value}
 Address = ${data.client_ipv4.full_address()}, ${data.client_ipv6.full_address()}
+`;
 
+    if (data.tunnel_everything.value) {
+        contents +=
+`DNS = ${(data.dns_ipv4.value.concat(data.dns_ipv6.value)).join(',')}
+`;
+    }
+
+    contents +=
+`
 [Peer]
 Endpoint = ${data.server_endpoint.value}
 PublicKey = ${data.server_public.value}
 PresharedKey = ${data.preshared.value}
-AllowedIPs = ${data.client_ipv4.allowed_ips_client()}, ${data.client_ipv6.allowed_ips_client()}
 `;
+
+    if (data.tunnel_everything.value) {
+        contents +=
+`AllowedIPs = ${catchall_ipv4}, ${catchall_ipv6}
+`;
+    } else {
+        contents +=
+`AllowedIPs = ${data.client_ipv4.allowed_ips_client()}, ${data.client_ipv6.allowed_ips_client()}
+`;
+    }
 
     if (data.keepalive.is_set()) {
         contents +=
@@ -568,13 +713,31 @@ Kind = wireguard
 
 [WireGuard]
 PrivateKey = ${data.client_private.value}
+`;
 
+    if (data.tunnel_everything.value) {
+        contents +=
+`FirewallMark = 0x8888
+`;
+    }
+
+    contents +=
+`
 [WireGuardPeer]
 Endpoint = ${data.server_endpoint.value}
 PublicKey = ${data.server_public.value}
 PresharedKey = ${data.preshared.value}
-AllowedIPs = ${data.client_ipv4.allowed_ips_client()}, ${data.client_ipv6.allowed_ips_client()}
 `;
+
+    if (data.tunnel_everything.value) {
+        contents +=
+`AllowedIPs = ${catchall_ipv4}, ${catchall_ipv6}
+`;
+    } else {
+        contents +=
+`AllowedIPs = ${data.client_ipv4.allowed_ips_client()}, ${data.client_ipv6.allowed_ips_client()}
+`;
+    }
 
     if (data.keepalive.is_set()) {
         contents +=
@@ -587,7 +750,7 @@ AllowedIPs = ${data.client_ipv4.allowed_ips_client()}, ${data.client_ipv6.allowe
 
 function systemd_client_network_file(data) {
     var path = `/etc/systemd/network/${iface}.network`;
-    return new ConfigFile(path,
+    var contents =
 `# This is the second file. Put this into
 #     ${path}
 # and if you're done with the first file already, run
@@ -600,7 +763,34 @@ Name = ${iface}
 [Network]
 Address = ${data.client_ipv4.full_address()}
 Address = ${data.client_ipv6.full_address()}
-`);
+`;
+
+    if (data.tunnel_everything.value) {
+        data.dns_ipv4.value.forEach(function(val) {
+            contents +=
+`DNS = ${val}
+`;
+        });
+        data.dns_ipv6.value.forEach(function(val) {
+            contents +=
+`DNS = ${val}
+`;
+        });
+        contents +=
+`Domains = ~.
+DNSDefaultRoute = true
+
+[RoutingPolicyRule]
+FirewallMark = 0x8888
+InvertRule = true
+Table = 1000
+Priority = 10
+`;
+    }
+
+    // I know this doesn't work, but I don't care, systemd-networkd is a
+    // fucking nightmare.
+    return new ConfigFile(path, contents);
 }
 
 function systemd_server_netdev_file(data) {
@@ -644,8 +834,16 @@ private-key-flags=0
 endpoint=${data.server_endpoint.value}
 preshared-key=${data.preshared.value}
 preshared-key-flags=0
-allowed-ips=${data.client_ipv4.allowed_ips_client()};${data.client_ipv6.allowed_ips_client()};
 `;
+    if (data.tunnel_everything.value) {
+        contents +=
+`allowed-ips=${catchall_ipv4};${catchall_ipv6};
+`;
+    } else {
+        contents +=
+`allowed-ips=${data.client_ipv4.allowed_ips_client()};${data.client_ipv6.allowed_ips_client()};
+`;
+    }
     if (data.keepalive.is_set()) {
         contents +=
 `persistent-keepalive=${data.keepalive.value}
@@ -657,11 +855,30 @@ allowed-ips=${data.client_ipv4.allowed_ips_client()};${data.client_ipv6.allowed_
 [ipv4]
 address1=${data.client_ipv4.full_address()}
 method=manual
+`;
 
+    if (data.tunnel_everything.value) {
+        contents +=
+`dns=${data.dns_ipv4.value.join(';')};
+dns-priority=-10
+dns-search=~;
+`;
+    }
+
+    contents +=
+`
 [ipv6]
 address1=${data.client_ipv6.full_address()}
 method=manual
 `;
+
+    if (data.tunnel_everything.value) {
+        contents +=
+`dns=${data.dns_ipv6.value.join(';')};
+dns-priority=-10
+dns-search=~;
+`;
+    }
 
     return new ConfigFile(path, contents);
 }
@@ -690,7 +907,7 @@ var shell_info =
 # Better yet, put into a file and run (possibly, using sudo).`;
 
 function manual_client_script(data) {
-    return new ConfigFile('client_setup.sh',
+    var contents =
 `# On the client, run this to set up a connection.
 ${shell_info}
 
@@ -703,9 +920,21 @@ wg set ${iface} \\
     peer ${data.server_public.value} \\
     preshared-key <( echo ${data.preshared.value} ) \\
     endpoint ${data.server_endpoint.value} \\
-    allowed-ips ${data.client_ipv4.allowed_ips_client()},${data.client_ipv6.allowed_ips_client()}
-ip link set ${iface} up
-`);
+`;
+    if (data.tunnel_everything.value) {
+        contents +=
+`    allowed-ips ${catchall_ipv4},${catchall_ipv6}
+`;
+    } else {
+        contents +=
+`    allowed-ips ${data.client_ipv4.allowed_ips_client()},${data.client_ipv6.allowed_ips_client()}
+`;
+    }
+
+    contents +=
+`ip link set ${iface} up
+`;
+    return new ConfigFile('client_setup.sh', contents);
 }
 
 function manual_server_script(data) {

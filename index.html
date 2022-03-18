@@ -76,6 +76,27 @@ params:
           Time to wait between sending keepalive packets, seconds.
         example: 25
         advanced: true
+      - id: tunnel_everything
+        name: Tunnel all traffic
+        type: checkbox
+        default: false
+        advanced: true
+      - id: dns_ipv4
+        name: DNS (IPv4)
+        default: 1.1.1.1,1.0.0.1
+        placeholder: IPv4 addresses of DNS servers
+        help: |
+          Comma-separated list of IPv4 addresses to use as DNS servers.
+        example: 1.1.1.1,1.0.0.1
+        advanced: true
+      - id: dns_ipv6
+        name: DNS (IPv6)
+        default: 2606:4700:4700::1111,2606:4700:4700::1001
+        placeholder: IPv6 addresses of DNS servers
+        help: |
+          Comma-separated list of IPv6 addresses to use as DNS servers.
+        example: 2606:4700:4700::1111,2606:4700:4700::1001
+        advanced: true
 ---
 <h1>WireGuard configuration</h1>
 
@@ -112,6 +133,8 @@ show the configuration that can be easily consumed by the new client.</p>
           </div>
         </div>
   {% for param in grp.items %}
+    {% assign type = param.type | default: "text" %}
+    {% if type == "text" %}
         <div class="form-group" id="param_{{ param.id }}_container"{% if param.advanced %} style="display: none;"{% endif %}>
           <label for="param_{{ param.id }}" class="col-sm-3 control-label">{{ param.name }}</label>
           <div class="col-sm-9">
@@ -122,6 +145,19 @@ show the configuration that can be easily consumed by the new client.</p>
             </span>
           </div>
         </div>
+    {% endif %}
+    {% if type == "checkbox" %}
+        <div class="form-group" id="param_{{ param.id }}_container"{% if param.advanced %} style="display: none;"{% endif %}>
+          <div class="col-sm-offset-3 col-sm-9">
+            <div class="checkbox">
+              <label><input type="checkbox" id="param_{{ param.id }}" value="{{ param.default }}"{% if param.default %} checked{% endif %}>{{ param.name }}</label>
+            </div>
+            <span id="param_{{ param.id }}_help" class="help-block" style="margin-bottom: 0;">
+              <span id="param_{{ param.id }}_error" class="text-danger small" style="display: block; white-space: pre-line; margin-bottom: 5px;"></span>
+            </span>
+          </div>
+        </div>
+    {% endif %}
   {% endfor %}
       </div>
     </div>
