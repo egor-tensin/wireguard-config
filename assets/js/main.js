@@ -465,46 +465,19 @@ Data.prototype.hide_advanced = function() {
     });
 }
 
-function edit_btn_init(btn) {
-    btn.empty();
-    btn.append('<span class="glyphicon glyphicon-pencil"/>');
-}
-
-function edit_btn_save(btn) {
-    btn.empty();
-    btn.append('<span class="glyphicon glyphicon-floppy-disk"/>');
-}
-
-function edit_btn_on_click(btn, pre) {
-    var editable = pre.prop('isContentEditable');
-    pre.prop('contentEditable', !editable);
-    if (editable) {
-        edit_btn_init(btn);
-        btn.blur(); // a.k.a. unfocus
-    } else {
-        edit_btn_save(btn);
-        pre.focus();
-    }
-}
-
-function dload_btn_init(btn) {
-    btn.empty();
-    btn.append('<span class="glyphicon glyphicon-download-alt"/>');
-}
-
 function basename(path) {
     return path.substring(path.lastIndexOf('/') + 1);
 }
 
-function dload_btn_on_click(btn, path, pre) {
+function download(file_name, text) {
     // The type must be application/octet-stream; if it's text/plain, the
     // Android Chrome appends the .txt suffix to the downloaded file names.
-    var blob = new Blob([pre.text()], {type: 'application/octet-stream'});
+    var blob = new Blob([text], {type: 'application/octet-stream'});
     var url = URL.createObjectURL(blob);
 
     var link = $('<a/>');
     link.prop('href', url);
-    link.prop('download', basename(path));
+    link.prop('download', file_name);
 
     // Whoever thought of this [0] is fucking crazy:
     // https://stackoverflow.com/a/36483380/514684
@@ -557,44 +530,75 @@ function copy_to_clipboard(elem) {
     return succeed;
 }
 
-function copy_btn_init(btn) {
-    btn.empty();
-    btn.append('<span class="glyphicon glyphicon-copy"/>');
+var OverlayButton = function(title, icon, click_handler) {
+    this.btn = $('<button/>', {
+        'class': 'btn btn-default',
+        type: 'button',
+        on: {
+            click: click_handler
+        }
+    });
+    this.title = title;
+    this.icon = icon;
+    this.show_icon(title, icon);
 }
 
-function copy_btn_on_click(btn, pre) {
-    copy_to_clipboard(pre[0]);
+OverlayButton.prototype.show_icon = function(title, icon) {
+    this.btn.empty();
+    this.btn.prop('title', title);
+    this.btn.append($('<span/>', {
+        'class': `glyphicon glyphicon-${icon}`
+    }));
 }
 
-function make_pre_buttons(path, pre) {
-    var edit_btn = $('<button class="btn btn-default" type="button" title="Edit"/>');
-    edit_btn_init(edit_btn);
-    edit_btn.click(function() {
-        edit_btn_on_click(edit_btn, pre);
+var EditButton = function(cfg) {
+    var self = this;
+    OverlayButton.call(this, 'Edit', 'pencil', function(evt) {
+        return self.on_click(cfg);
     });
-
-    var dload_btn = $('<button class="btn btn-default" type="button" title="Download"/>');
-    dload_btn_init(dload_btn);
-    dload_btn.click(function() {
-        dload_btn_on_click(dload_btn, path, pre);
-    });
-
-    var copy_btn = $('<button class="btn btn-default" type="button" title="Copy"/>');
-    copy_btn_init(copy_btn);
-    copy_btn.click(function() {
-        copy_btn_on_click(copy_btn, pre);
-    });
-
-    return $('<div class="pre_buttons btn-group btn-group-xs" role="group"/>')
-        .append(copy_btn)
-        .append(dload_btn)
-        .append(edit_btn);
 }
 
-function format_pre_text(pre, name) {
-    return $('<div class="pre_container"/>')
-        .append(pre)
-        .append(make_pre_buttons(name, pre));
+EditButton.prototype = Object.create(OverlayButton.prototype);
+EditButton.prototype.constructor = EditButton;
+
+EditButton.prototype.on_click = function(cfg) {
+    var editable = cfg.pre.prop('isContentEditable');
+    cfg.pre.prop('contentEditable', !editable);
+    if (editable) {
+        this.show_icon(this.title, this.icon);
+        this.btn.blur(); // a.k.a. unfocus
+    } else {
+        this.show_icon('Save', 'floppy-disk');
+        cfg.pre.focus();
+    }
+}
+
+var DownloadButton = function(cfg) {
+    var self = this;
+    OverlayButton.call(this, 'Download', 'download-alt', function(evt) {
+        return self.on_click(cfg);
+    });
+}
+
+DownloadButton.prototype = Object.create(OverlayButton.prototype);
+DownloadButton.prototype.constructor = DownloadButton;
+
+DownloadButton.prototype.on_click = function(cfg) {
+    return download(basename(cfg.name), cfg.pre.text());
+}
+
+var CopyButton = function(cfg) {
+    var self = this;
+    OverlayButton.call(this, 'Copy', 'copy', function(evt) {
+        return self.on_click(cfg);
+    });
+}
+
+CopyButton.prototype = Object.create(OverlayButton.prototype);
+CopyButton.prototype.constructor = CopyButton;
+
+CopyButton.prototype.on_click = function(cfg) {
+    return copy_to_clipboard(cfg.pre[0]);
 }
 
 var ConfigFile = function(name, text) {
@@ -604,7 +608,20 @@ var ConfigFile = function(name, text) {
 }
 
 ConfigFile.prototype.format = function() {
-    return format_pre_text(this.pre, this.name);
+    var buttons = [
+        new CopyButton(this),
+        new DownloadButton(this),
+        new EditButton(this)
+    ];
+
+    var overlay = $('<div class="pre_buttons btn-group btn-group-xs" role="group"/>');
+    buttons.forEach(function(btn) {
+        overlay.append(btn.btn);
+    });
+
+    return $('<div class="pre_container"/>')
+        .append(this.pre)
+        .append(overlay);
 }
 
 var QRCode = function(pre) {
