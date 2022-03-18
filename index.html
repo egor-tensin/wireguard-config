@@ -27,20 +27,20 @@ params:
         placeholder: "Server's public key"
         help: |
           Query using <code>wg show wg0 public-key</code>
-        example: a
+        example: iNqGDQ2tltbSN4s3Fpb/7PRc2OSwR3/bPjOrf8V/SmA=
       - id: server_endpoint
         name: Endpoint
         placeholder: "Server's endpoint in the HOST:PORT format"
         help: |
           Server's public IP address or a hostname, accessible from the client.
           Query the current port using <code>wg show wg0 listen-port</code>
-        example: b:123
+        example: 123.123.123.123:123
       - id: preshared
         name: Preshared key
         placeholder: Preshared key (shared between server and client)
         help: |
           Generate using <code>wg genpsk</code>
-        example: c
+        example: Moshdr8RNfYUWG/0MVOlglzlze3beATD6YumDwCZf5E=
   - id: client
     desc: Client
     items:
@@ -49,25 +49,25 @@ params:
         placeholder: "Client's public key"
         help: |
           Generate both the private and the public keys using <code>wg genkey | tee private.key | wg pubkey > public.key</code>
-        example: d
+        example: hvfo/MgizTRbrktfx3k2Q0Ib0mx0P2N6LRZEYWqkpXc=
       - id: client_private
         name: Private key
         placeholder: "Client's private key"
         help: |
           Unless generated in one go with the public key, generate one using <code>wg genkey</code>
-        example: e
+        example: qKgmDq8HWaU432qJhEa2Q6pE52P55xBHNOgzB0roP3A=
       - id: client_ipv4
         name: IPv4
-        placeholder: IPv4 address and netmask, like 192.168.123.5/24
+        placeholder: IPv4 address and netmask, like 192.168.123.123/24
         help: |
           IPv4 address to assign to the client and its netmask in the CIDR format.
-        example: 192.168.1.1/24
+        example: 192.168.123.123/24
       - id: client_ipv6
         name: IPv6
-        placeholder: IPv6 address and netmask, like fd01:2345:6789::5/48
+        placeholder: IPv6 address and netmask, like fd01:2345:6789::192.168.123.123/48
         help: |
           IPv6 address to assign to the client and its netmask in the CIDR format.
-        example: fd::/48
+        example: fd01:2345:6789::192.168.123.123/48
       - id: keepalive
         name: Keepalive
         default: 25
@@ -93,7 +93,7 @@ show the configuration that can be easily consumed by the new client.</p>
       {% capture example_url %}{{ example_url }}&{% endcapture %}
     {% endunless %}
     {% assign first = false %}
-    {% capture example_url %}{{ example_url }}{{ param.id }}={{ param.example }}{% endcapture %}
+    {% capture example_url %}{{ example_url }}{{ param.id }}={{ param.example | url_encode }}{% endcapture %}
   {% endfor %}
 {% endfor %}
     <p>An example configuration (with bogus key values) can be seen
