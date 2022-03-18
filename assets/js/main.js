@@ -901,9 +901,13 @@ function manual_client_script(data) {
     var path = 'client_setup.sh';
 
     var allowed_ips = `${data.client_ipv4.allowed_ips_client()},${data.client_ipv6.allowed_ips_client()}`;
+    var keepalive = '';
 
     if (data.tunnel_everything.value) {
         allowed_ips = `${catchall_ipv4},${catchall_ipv6}`;
+    }
+    if (data.keepalive.is_set()) {
+        keepalive = `    persistent-keepalive ${data.keepalive.value} \\\n`;
     }
 
     var contents =
@@ -918,7 +922,7 @@ wg set ${iface} \\
 wg set ${iface} \\
     peer ${data.server_public.value} \\
     preshared-key <( echo ${data.preshared.value} ) \\
-    endpoint ${data.server_endpoint.value} \\
+${keepalive}    endpoint ${data.server_endpoint.value} \\
     allowed-ips ${allowed_ips}
 ip link set ${iface} up
 `;
