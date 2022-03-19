@@ -1078,8 +1078,8 @@ function guides_from_data(data) {
     var guides = [
         new GuidePermaURL(),
         new GuideWgQuick(),
-        new GuideSystemd(),
         new GuideNetworkManager(),
+        new GuideSystemd(),
         new GuideManual()
     ];
 
