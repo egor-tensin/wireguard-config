@@ -4,19 +4,19 @@ layout: plain
 navbar:
   link: Main
   icon: home
-custom_css:
-  - pre_overlay.css
-custom_js:
+links:
+  - {rel: stylesheet, href: assets/css/pre_overlay.css}
+scripts:
   # ipaddr.js is buggy: https://github.com/whitequark/ipaddr.js/issues/160.
   # TODO: revert back to using ipaddr.js if it's fixed?
-  #- https://cdn.jsdelivr.net/npm/ipaddr.js@2.0.1/ipaddr.min.js
+  #- {src: 'https://cdn.jsdelivr.net/npm/ipaddr.js@2.0.1/ipaddr.min.js'}
 
   # This is the "browserified" replacement, ip-address. This bundling procedure
   # fucking sucks, but it's the best I've got for now.
-  - bundle.js
+  - {src: assets/js/bundle.js}
 
-  - https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js
-  - main.js
+  - {src: 'https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js'}
+  - {src: assets/js/main.js}
 
 params:
   - id: server
