@@ -32,8 +32,8 @@ params:
         name: Endpoint
         placeholder: "Server's endpoint in the HOST:PORT format"
         help: |
-          Server's public IP address or a hostname, accessible from the client.
-          Query the current port using <code>wg show wg0 listen-port</code>
+          Server's <em>public</em> IP address or a hostname.
+          Query the port using <code>wg show wg0 listen-port</code>
         example: 123.123.123.123:123
       - id: preshared
         name: Preshared key
@@ -48,7 +48,7 @@ params:
         name: Public key
         placeholder: "Client's public key"
         help: |
-          Generate both the private and the public keys using <code>wg genkey | tee private.key | wg pubkey > public.key</code>
+          Generate both keys using <code>wg genkey | tee private.key | wg pubkey > public.key</code>
         example: hvfo/MgizTRbrktfx3k2Q0Ib0mx0P2N6LRZEYWqkpXc=
       - id: client_private
         name: Private key
@@ -58,13 +58,13 @@ params:
         example: qKgmDq8HWaU432qJhEa2Q6pE52P55xBHNOgzB0roP3A=
       - id: client_ipv4
         name: IPv4
-        placeholder: IPv4 address and netmask, like 192.168.123.123/24
+        placeholder: Address and netmask, like 192.168.123.123/24
         help: |
           IPv4 address to assign to the client and its netmask in the CIDR format.
         example: 192.168.123.123/24
       - id: client_ipv6
         name: IPv6
-        placeholder: IPv6 address and netmask, like fd01:2345:6789::192.168.123.123/48
+        placeholder: Address and netmask, like fd::192.168.123.123/48
         help: |
           IPv6 address to assign to the client and its netmask in the CIDR format.
         example: fd01:2345:6789::192.168.123.123/48
