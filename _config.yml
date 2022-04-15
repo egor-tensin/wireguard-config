@@ -21,7 +21,7 @@ plugins:
 # jekyll-github-metadata
 repository: egor-tensin/wireguard-config
 # jekyll-remote-theme
-remote_theme: egor-tensin/jekyll-theme@0bf6261d15918eed39b077b0ec83f3325c530bff
+remote_theme: egor-tensin/jekyll-theme@4ad2cc70618ee3c63fc067e68a8967d27596183c
 
 # Theme settings
 settings:
