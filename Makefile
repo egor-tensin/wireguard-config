@@ -1,9 +1,10 @@
 MAKEFLAGS += --no-builtin-rules --no-builtin-variables --warn-undefined-variables
+unexport MAKEFLAGS
 .DEFAULT_GOAL := all
 .DELETE_ON_ERROR:
 .SUFFIXES:
 SHELL := bash
-.SHELLFLAGS := -e -o pipefail -c
+.SHELLFLAGS := -eu -o pipefail -c
 
 escape = $(subst ','\'',$(1))
 
