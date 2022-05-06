@@ -1,5 +1,9 @@
 # Jekyll
 baseurl: /wireguard-config
+host: 0.0.0.0
+open_url: true
+show_drafts: true
+strict_front_matter: true
 
 exclude:
   - Makefile
