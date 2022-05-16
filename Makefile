@@ -63,3 +63,15 @@ bundle: assets/js/bundle.js
 
 assets/js/bundle.js: package-lock.json
 	npm exec -- browserify --require ip-address --outfile '$(call escape,$@)'
+
+REMOTE_USER ?= who
+REMOTE_HOST ?= where
+REMOTE_DIR  ?= /path/to/dir
+
+$(eval $(call noexpand,REMOTE_USER))
+$(eval $(call noexpand,REMOTE_HOST))
+$(eval $(call noexpand,REMOTE_DIR))
+
+.PHONY: deploy
+deploy:
+	rsync -avh -e 'ssh -o StrictHostKeyChecking=no' _site/ '$(call escape,$(REMOTE_USER)@$(REMOTE_HOST):$(REMOTE_DIR)/)' --delete

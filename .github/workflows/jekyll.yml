@@ -26,3 +26,13 @@ jobs:
         run: |
           nohup make serve &
           sleep 3 && make wget
+      - name: Set up ssh-agent
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: '${{ secrets.REMOTE_SSH_KEY }}'
+      - name: Deploy
+        run: make deploy
+        env:
+          REMOTE_USER: '${{ secrets.REMOTE_USER }}'
+          REMOTE_HOST: '${{ secrets.REMOTE_HOST }}'
+          REMOTE_DIR: '${{ secrets.REMOTE_DIR }}'
