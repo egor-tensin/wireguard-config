@@ -21,6 +21,7 @@ exclude:
 plugins:
   - jekyll-github-metadata
   - jekyll-remote-theme
+  - jekyll-tidy
 
 # jekyll-github-metadata
 repository: egor-tensin/wireguard-config
