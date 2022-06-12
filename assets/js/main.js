@@ -864,6 +864,7 @@ address1=${data.client_ipv4.full_address()}
 method=manual
 ${dns4}
 [ipv6]
+addr-gen-mode=stable-privacy
 address1=${data.client_ipv6.full_address()}
 method=manual
 ${dns6}`;
