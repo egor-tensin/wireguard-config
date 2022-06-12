@@ -38,16 +38,14 @@ This project tries to make this task easier.
 Security
 --------
 
-This page only works on the client side - GitHub Pages doesn't allow
-server-side processing.
-Nothing really prevents me from sending your keys to an external server using
-JavaScript, but you can easily verify that it doesn't happen using your
-browser's debugging tools.
+This is a static website, so no server-side processing is happening.
+You can easily verify that your browser doesn't make any requests to any
+servers using your browser's debugging tools.
 
 Development
 -----------
 
-This is a "static" website, generated using [Jekyll].
+This is a static website, generated using [Jekyll].
 
 Make sure you have Ruby and [Bundler] set up.
 [GNU Make] is used for shortcuts.
