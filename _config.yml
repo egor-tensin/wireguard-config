@@ -9,6 +9,10 @@ exclude:
   - Makefile
   - README.md
 
+  - Gemfile
+  - Gemfile.lock
+  - vendor/
+
   - node_modules/
   - package.json
   - package-lock.json
@@ -22,7 +26,7 @@ plugins:
 # jekyll-github-metadata
 repository: egor-tensin/wireguard-config
 # jekyll-remote-theme
-remote_theme: egor-tensin/jekyll-theme@425d20d2001d87eff0e6aa3c605bf30ff2063f60
+remote_theme: egor-tensin/jekyll-theme@2dc87131123afaa1716c87dd02164b33059ad2b8
 
 # Theme settings
 settings:
