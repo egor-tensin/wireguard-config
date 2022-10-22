@@ -37,3 +37,4 @@ jobs:
           REMOTE_HOST: '${{ secrets.REMOTE_HOST }}'
           REMOTE_PORT: '${{ secrets.REMOTE_PORT}}'
           REMOTE_DIR: '${{ secrets.REMOTE_DIR }}'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
