@@ -1,6 +1,7 @@
 # Jekyll
 baseurl: /wireguard-config
 host: 0.0.0.0
+livereload: true
 open_url: true
 show_drafts: true
 strict_front_matter: true
