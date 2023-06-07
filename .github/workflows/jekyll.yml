@@ -22,7 +22,7 @@ jobs:
         run: make build
       - name: Check integrity
         run: |
-          nohup make serve &
+          nohup make serve LIVE_RELOAD=0 &
           sleep 3 && make wget
       - name: Set up ssh-agent
         uses: webfactory/ssh-agent@v0.7.0

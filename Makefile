@@ -20,6 +20,9 @@ ifeq ($$(origin $(1)),command line)
 endif
 endef
 
+LIVE_RELOAD ?= 1
+$(eval $(call noexpand,LIVE_RELOAD))
+
 .PHONY: all
 all: serve
 
@@ -46,7 +49,11 @@ build:
 
 .PHONY: serve
 serve:
+ifeq ($(LIVE_RELOAD),1)
+	$(jekyll) serve --livereload
+else
 	$(jekyll) serve
+endif
 
 URL := http://localhost:4000/wireguard-config/
 
