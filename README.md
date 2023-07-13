@@ -45,45 +45,15 @@ servers using your browser's debugging tools.
 Development
 -----------
 
-This is a static website, generated using [Jekyll].
-
-Make sure you have Ruby and [Bundler] set up.
-[GNU Make] is used for shortcuts.
-
-* Install dependencies by running `make deps`.
-* Build the website by running `make build`.
-* Launch a local web server by running `make serve`.
-Access the website at http://localhost:4000/wireguard-config/.
-
-[jekyll-theme] is used as a remote Jekyll theme.
+This is a static website, built using [Jekyll].
+[jekyll-theme] is used as the Jekyll theme.
 
 [Jekyll]: https://jekyllrb.com/
-[Bundler]: https://bundler.io/
-[GNU Make]: https://www.gnu.org/software/make/
 [jekyll-theme]: https://github.com/egor-tensin/jekyll-theme
 
-### Access via file://
+See [DEVELOPMENT.md] for details.
 
-Jekyll doesn't provide native support for generating a static website which can
-be browsed without running a web server.
-One workaround is to `wget` the website (use `make wget`).
-The truly static version will be downloaded to the .wget/ directory.
-
-### Node.js dependencies
-
-For IP address parsing and validation, [ipaddr.js] was used originally.
-It is pre-built for browser use, which is nice; however, it's [buggy].
-It was replaced by [ip-address], which is not browser-ready; instead,
-[Browserify] is used to turn it into a suitable .js file
-(`make npm && make bundle`).
-
-This whole situation sucks, but I really want to keep this website static.
-TODO: find other options or wait until ipaddr.js fixes the bug.
-
-[ipaddr.js]: https://github.com/whitequark/ipaddr.js
-[buggy]: https://github.com/whitequark/ipaddr.js/issues/160
-[ip-address]: https://github.com/beaugunderson/ip-address
-[Browserify]: https://browserify.org/
+[DEVELOPMENT.md]: DEVELOPMENT.md
 
 License
 -------

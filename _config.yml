@@ -6,6 +6,7 @@ show_drafts: true
 strict_front_matter: true
 
 exclude:
+  - DEVELOPMENT.md
   - Makefile
   - prelude.mk
   - README.md
