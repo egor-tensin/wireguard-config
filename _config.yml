@@ -6,6 +6,7 @@ show_drafts: true
 strict_front_matter: true
 
 exclude:
+  - .wget/
   - DEVELOPMENT.md
   - Makefile
   - prelude.mk
