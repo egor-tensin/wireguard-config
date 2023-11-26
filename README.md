@@ -4,7 +4,7 @@ WireGuard configuration
 [![Jekyll](https://github.com/egor-tensin/wireguard-config/actions/workflows/jekyll.yml/badge.svg)](https://github.com/egor-tensin/wireguard-config/actions/workflows/jekyll.yml)
 
 Generate WireGuard configuration files.
-Hosted at https://egort.name/wireguard-config/.
+Hosted at https://tensin.name/wireguard-config/.
 
 Easily generate WireGuard client & server configuration for the following
 connection managers:
@@ -21,7 +21,7 @@ connection managers:
 
 Take a look at an [example configuration] to learn more.
 
-[example configuration]: https://egort.name/wireguard-config/?server_public=iNqGDQ2tltbSN4s3Fpb%2F7PRc2OSwR3%2FbPjOrf8V%2FSmA%3D&server_endpoint=123.123.123.123%3A123&preshared=Moshdr8RNfYUWG%2F0MVOlglzlze3beATD6YumDwCZf5E%3D&client_public=hvfo%2FMgizTRbrktfx3k2Q0Ib0mx0P2N6LRZEYWqkpXc%3D&client_private=qKgmDq8HWaU432qJhEa2Q6pE52P55xBHNOgzB0roP3A%3D&client_ipv4=192.168.123.123%2F24&client_ipv6=fd01%3A2345%3A6789%3A%3A192.168.123.123%2F48
+[example configuration]: https://tensin.name/wireguard-config/?server_public=iNqGDQ2tltbSN4s3Fpb%2F7PRc2OSwR3%2FbPjOrf8V%2FSmA%3D&server_endpoint=123.123.123.123%3A123&preshared=Moshdr8RNfYUWG%2F0MVOlglzlze3beATD6YumDwCZf5E%3D&client_public=hvfo%2FMgizTRbrktfx3k2Q0Ib0mx0P2N6LRZEYWqkpXc%3D&client_private=qKgmDq8HWaU432qJhEa2Q6pE52P55xBHNOgzB0roP3A%3D&client_ipv4=192.168.123.123%2F24&client_ipv6=fd01%3A2345%3A6789%3A%3A192.168.123.123%2F48
 
 Description
 -----------
