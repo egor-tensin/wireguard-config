@@ -41,9 +41,8 @@ Upgrading dependencies
 
 * Manually upgrade Node.js dependencies:
 
-      make npm
       npm update
-      make bundle
+      make browserify
 
 Building static pages
 ---------------------

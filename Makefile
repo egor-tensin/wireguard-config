@@ -13,22 +13,19 @@ ruby:
 .PHONY: deps
 deps: ruby
 	bundle install
-
-.PHONY: npm
-npm:
 	npm install
 
-jekyll := bundle exec jekyll
+.PHONY: browserify
+browserify: assets/js/bundle.js
 
-.PHONY: build
-build:
-	$(jekyll) build
+assets/js/bundle.js: package-lock.json
+	npm exec -- browserify --require ip-address --outfile '$(call escape,$@)'
 
 .PHONY: maintenance
-maintenance: ruby npm
+maintenance: ruby
 	bundle update
 	npm update
-	@$(MAKE) bundle
+	@$(MAKE) browserify
 
 	@git_status="$$( git status --porcelain=v1 )" && \
 	if [ -z "$$git_status" ]; then \
@@ -44,6 +41,12 @@ maintenance: ruby npm
 		echo '-----------------------------------------------------------------'; \
 		exit 1; \
 	fi
+
+jekyll := bundle exec jekyll
+
+.PHONY: build
+build:
+	$(jekyll) build
 
 .PHONY: serve
 serve:
@@ -62,12 +65,6 @@ wget:
 .PHONY: view
 view:
 	xdg-open '$(call escape,$(URL))' &> /dev/null
-
-.PHONY: bundle
-bundle: assets/js/bundle.js
-
-assets/js/bundle.js: package-lock.json
-	npm exec -- browserify --require ip-address --outfile '$(call escape,$@)'
 
 REMOTE_USER ?= who
 REMOTE_HOST ?= where
