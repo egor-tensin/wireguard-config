@@ -18,14 +18,32 @@ deps: ruby
 npm:
 	npm install
 
-.PHONY: all-deps
-all-deps: deps npm
-
 jekyll := bundle exec jekyll
 
 .PHONY: build
 build:
 	$(jekyll) build
+
+.PHONY: maintenance
+maintenance: ruby npm
+	bundle update
+	npm update
+	@$(MAKE) bundle
+
+	@git_status="$$( git status --porcelain=v1 )" && \
+	if [ -z "$$git_status" ]; then \
+		true ; \
+	elif [ "$$git_status" = $$' M Gemfile.lock\n M package-lock.json' ] \
+			|| [ "$$git_status" = $$' M Gemfile.lock\n M package-lock.json\n M assets/js/bundle.js' ]; then \
+		git commit -am 'bump dependencies' && \
+			git push -q ; \
+	else \
+		echo ; \
+		echo '-----------------------------------------------------------------'; \
+		echo 'Error: unrecognized modifications in the repository'; \
+		echo '-----------------------------------------------------------------'; \
+		exit 1; \
+	fi
 
 .PHONY: serve
 serve:

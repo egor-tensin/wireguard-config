@@ -31,15 +31,19 @@ Development
 Upgrading dependencies
 ----------------------
 
-Ruby dependencies:
+* To upgrade Ruby & Node.js dependencies & push them to the repository:
 
-    bundle update
+      make maintenance
 
-Node.js dependencies:
+* Manually upgrade Ruby dependencies:
 
-    make npm
-    npm update
-    make bundle
+      bundle update
+
+* Manually upgrade Node.js dependencies:
+
+      make npm
+      npm update
+      make bundle
 
 Building static pages
 ---------------------
