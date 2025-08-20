@@ -30,7 +30,8 @@ maintenance: ruby
 	@git_status="$$( git status --porcelain=v1 )" && \
 	if [ -z "$$git_status" ]; then \
 		true ; \
-	elif [ "$$git_status" = $$' M Gemfile.lock\n M package-lock.json' ] \
+	elif [ "$$git_status" = ' M Gemfile.lock' ] \
+			|| [ "$$git_status" = $$' M Gemfile.lock\n M package-lock.json' ] \
 			|| [ "$$git_status" = $$' M Gemfile.lock\n M package-lock.json\n M assets/js/bundle.js' ]; then \
 		git commit -am 'bump dependencies' && \
 			git push -q ; \
