@@ -1,6 +1,6 @@
+/.bundle/
 /.jekyll-cache/
-_site/
-.wget/
-
-node_modules/
-vendor/
+/node_modules/
+/_site/
+/vendor/
+/.wget/
