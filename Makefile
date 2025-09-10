@@ -23,7 +23,9 @@ assets/js/bundle.js: package-lock.json
 
 .PHONY: maintenance
 maintenance: ruby
+	bundle config set frozen false
 	bundle update
+
 	npm update
 	@$(MAKE) browserify
 
