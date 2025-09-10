@@ -40,7 +40,8 @@ maintenance: ruby
 	else \
 		echo; \
 		echo '-----------------------------------------------------------------'; \
-		echo 'Error: unrecognized modifications in the repository'; \
+		echo 'Error: unrecognized modifications in the repository:'; \
+		echo "$$git_status"; \
 		echo '-----------------------------------------------------------------'; \
 		exit 1; \
 	fi
