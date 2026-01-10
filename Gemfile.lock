@@ -21,10 +21,10 @@ GEM
     ffi (1.17.3-arm64-darwin)
     ffi (1.17.3-x86_64-linux-gnu)
     forwardable-extended (2.6.0)
-    google-protobuf (4.33.2-arm64-darwin)
+    google-protobuf (4.33.3-arm64-darwin)
       bigdecimal
       rake (>= 13)
-    google-protobuf (4.33.2-x86_64-linux-gnu)
+    google-protobuf (4.33.3-x86_64-linux-gnu)
       bigdecimal
       rake (>= 13)
     htmlbeautifier (1.4.3)
