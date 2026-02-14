@@ -30,11 +30,10 @@ maintenance: ruby
 	@$(MAKE) browserify
 
 	@git_status="$$( git status --porcelain=v1 )" && \
+	allowed=' M Gemfile.lock| M package-lock.json| M assets/js/bundle.js' && \
 	if [ -z "$$git_status" ]; then \
 		true; \
-	elif [ "$$git_status" = ' M Gemfile.lock' ] \
-			|| [ "$$git_status" = $$' M Gemfile.lock\n M package-lock.json' ] \
-			|| [ "$$git_status" = $$' M Gemfile.lock\n M package-lock.json\n M assets/js/bundle.js' ]; then \
+	elif ! echo "$$git_status" | grep -E -q --invert-match --line-regexp "($$allowed)"; then \
 		git commit -am 'bump dependencies' && \
 			git push -q; \
 	else \
