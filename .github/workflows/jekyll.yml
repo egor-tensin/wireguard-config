@@ -2,7 +2,6 @@ name: Jekyll
 
 on:
   push:
-  pull_request:
   workflow_dispatch:
 
 jobs:
@@ -35,4 +34,4 @@ jobs:
           REMOTE_HOST: '${{ secrets.REMOTE_HOST }}'
           REMOTE_PORT: '${{ secrets.REMOTE_PORT}}'
           REMOTE_DIR: '${{ secrets.REMOTE_DIR }}'
-        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/master'
+        if: github.ref == 'refs/heads/master'
