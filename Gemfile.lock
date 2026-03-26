@@ -18,8 +18,8 @@ GEM
       logger
     faraday-net_http (3.4.2)
       net-http (~> 0.5)
-    ffi (1.17.3-arm64-darwin)
-    ffi (1.17.3-x86_64-linux-gnu)
+    ffi (1.17.4-arm64-darwin)
+    ffi (1.17.4-x86_64-linux-gnu)
     forwardable-extended (2.6.0)
     google-protobuf (4.34.1-arm64-darwin)
       bigdecimal
@@ -67,7 +67,7 @@ GEM
       jekyll
     jekyll-watch (2.2.1)
       listen (~> 3.0)
-    json (2.19.2)
+    json (2.19.3)
     kramdown (2.5.2)
       rexml (>= 3.4.4)
     kramdown-parser-gfm (1.1.0)
