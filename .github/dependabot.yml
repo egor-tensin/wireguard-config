@@ -1,6 +1,8 @@
 version: 2
 updates:
+  # No Bundler, because it's automated in the maintenance repository anyway.
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+  # Also, no Node, because it's also automated.
