@@ -1,6 +1,6 @@
 version: 2
 updates:
-  # No Bundler, because it's automated in the maintenance repository anyway.
+  # No Bundler, because it's automated in the maintenance workflow anyway.
   - package-ecosystem: github-actions
     directory: /
     schedule:
