@@ -958,7 +958,12 @@ class Address6 {
             this.address4 = new ipv4_1.Address4(this.parsedAddress4);
             for (let i = 0; i < this.address4.groups; i++) {
                 if (/^0[0-9]+/.test(this.address4.parsedAddress[i])) {
-                    throw new address_error_1.AddressError("IPv4 addresses can't have leading zeroes.", address.replace(constants4.RE_ADDRESS, this.address4.parsedAddress.map(spanLeadingZeroes4).join('.')));
+                    // The prefix groups haven't been through the bad-character check
+                    // yet, so escape them before including in the error HTML.
+                    const highlighted = this.address4.parsedAddress.map(spanLeadingZeroes4).join('.');
+                    const prefix = groups.slice(0, -1).map(helpers.escapeHtml).join(':');
+                    const separator = groups.length > 1 ? ':' : '';
+                    throw new address_error_1.AddressError("IPv4 addresses can't have leading zeroes.", `${prefix}${separator}${highlighted}`);
                 }
             }
             this.v4 = true;
@@ -1318,10 +1323,13 @@ class Address6 {
             formFunction = this.to4in6;
         }
         const form = formFunction.call(this);
+        const safeHref = helpers.escapeHtml(`${options.prefix}${form}`);
+        const safeForm = helpers.escapeHtml(form);
         if (options.className) {
-            return `<a href="${options.prefix}${form}" class="${options.className}">${form}</a>`;
+            const safeClass = helpers.escapeHtml(options.className);
+            return `<a href="${safeHref}" class="${safeClass}">${safeForm}</a>`;
         }
-        return `<a href="${options.prefix}${form}">${form}</a>`;
+        return `<a href="${safeHref}">${safeForm}</a>`;
     }
     /**
      * Groups an address
@@ -1330,13 +1338,13 @@ class Address6 {
     group() {
         if (this.elidedGroups === 0) {
             // The simple case
-            return helpers.simpleGroup(this.address).join(':');
+            return helpers.simpleGroup(this.addressMinusSuffix).join(':');
         }
         assert(typeof this.elidedGroups === 'number');
         assert(typeof this.elisionBegin === 'number');
         // The elided case
         const output = [];
-        const [left, right] = this.address.split('::');
+        const [left, right] = this.addressMinusSuffix.split('::');
         if (left.length) {
             output.push(...helpers.simpleGroup(left));
         }
@@ -1512,15 +1520,24 @@ exports.RE_URL_WITH_PORT = /\[([0-9a-f:]+)\]:([0-9]{1,5})/;
 },{}],7:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.escapeHtml = escapeHtml;
 exports.spanAllZeroes = spanAllZeroes;
 exports.spanAll = spanAll;
 exports.spanLeadingZeroes = spanLeadingZeroes;
 exports.simpleGroup = simpleGroup;
+function escapeHtml(s) {
+    return s
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
 /**
  * @returns {String} the string with all zeroes contained in a <span>
  */
 function spanAllZeroes(s) {
-    return s.replace(/(0+)/g, '<span class="zero">$1</span>');
+    return escapeHtml(s).replace(/(0+)/g, '<span class="zero">$1</span>');
 }
 /**
  * @returns {String} the string with each character contained in a <span>
@@ -1528,11 +1545,11 @@ function spanAllZeroes(s) {
 function spanAll(s, offset = 0) {
     const letters = s.split('');
     return letters
-        .map((n, i) => `<span class="digit value-${n} position-${i + offset}">${spanAllZeroes(n)}</span>`)
+        .map((n, i) => `<span class="digit value-${escapeHtml(n)} position-${i + offset}">${spanAllZeroes(n)}</span>`)
         .join('');
 }
 function spanLeadingZeroesSimple(group) {
-    return group.replace(/^(0+)/, '<span class="zero">$1</span>');
+    return escapeHtml(group).replace(/^(0+)/, '<span class="zero">$1</span>');
 }
 /**
  * @returns {String} the string with leading zeroes contained in a <span>
