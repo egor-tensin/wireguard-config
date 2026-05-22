@@ -16,15 +16,15 @@ GEM
       faraday-net_http (>= 2.0, < 3.5)
       json
       logger
-    faraday-net_http (3.4.2)
+    faraday-net_http (3.4.3)
       net-http (~> 0.5)
     ffi (1.17.4-arm64-darwin)
     ffi (1.17.4-x86_64-linux-gnu)
     forwardable-extended (2.6.0)
-    google-protobuf (4.34.1-arm64-darwin)
+    google-protobuf (4.35.0-arm64-darwin)
       bigdecimal
       rake (~> 13.3)
-    google-protobuf (4.34.1-x86_64-linux-gnu)
+    google-protobuf (4.35.0-x86_64-linux-gnu)
       bigdecimal
       rake (~> 13.3)
     htmlbeautifier (1.4.3)
@@ -95,9 +95,9 @@ GEM
     rouge (4.7.0)
     rubyzip (2.4.1)
     safe_yaml (1.0.5)
-    sass-embedded (1.99.0-arm64-darwin)
+    sass-embedded (1.100.0-arm64-darwin)
       google-protobuf (~> 4.31)
-    sass-embedded (1.99.0-x86_64-linux-gnu)
+    sass-embedded (1.100.0-x86_64-linux-gnu)
       google-protobuf (~> 4.31)
     sawyer (0.9.3)
       addressable (>= 2.3.5)
