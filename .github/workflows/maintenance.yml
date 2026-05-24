@@ -21,11 +21,10 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           bundler-cache: true
-      - name: Run maintenance
-        id: maintenance
+      - name: Configure git
         run: |
           # See https://github.com/actions/checkout#push-a-commit-using-the-built-in-token
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          make maintenance
+      - name: Run maintenance
+        run: make maintenance
