@@ -47,7 +47,7 @@ Upgrading dependencies
 Building static pages
 ---------------------
 
-If you try to copy the _site directory and open index.html without running the
+If you try to copy the build/ directory and open index.html without running the
 web server, it won't work: all links will be messed up.
 Jekyll doesn't provide native support for generating a static website which can
 be browsed without running a web server.

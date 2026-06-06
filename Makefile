@@ -3,6 +3,9 @@ include prelude.mk
 LIVE_RELOAD ?= 1
 $(eval $(call noexpand,LIVE_RELOAD))
 
+# Resolve symlinks to actual files: https://github.com/jekyll/jekyll/pull/4640
+export JEKYLL_ENV := production
+
 .PHONY: all
 all: serve
 
@@ -16,9 +19,9 @@ deps: ruby
 	npm install
 
 .PHONY: browserify
-browserify: assets/js/bundle.js
+browserify: src/assets/js/bundle.js
 
-assets/js/bundle.js: package-lock.json
+src/assets/js/bundle.js: package-lock.json
 	npm exec -- browserify --require ip-address --outfile '$(call escape,$@)'
 
 .PHONY: maintenance
@@ -30,7 +33,7 @@ maintenance: ruby
 	@$(MAKE) browserify
 
 	@git_status="$$( git status --porcelain=v1 )" && \
-	allowed=' M Gemfile.lock| M package-lock.json| M assets/js/bundle.js' && \
+	allowed=' M Gemfile.lock| M package-lock.json| M src/assets/js/bundle.js' && \
 	if [ -z "$$git_status" ]; then \
 		true; \
 	elif ! echo "$$git_status" | grep -E -q --invert-match --line-regexp "($$allowed)"; then \
@@ -81,4 +84,4 @@ $(eval $(call noexpand,REMOTE_DIR))
 
 .PHONY: deploy
 deploy:
-	rsync -avh -e 'ssh -p $(call escape,$(REMOTE_PORT)) -o StrictHostKeyChecking=no' _site/ '$(call escape,$(REMOTE_USER)@$(REMOTE_HOST):$(REMOTE_DIR)/)' --delete
+	rsync -avh -e 'ssh -p $(call escape,$(REMOTE_PORT)) -o StrictHostKeyChecking=no' build/ '$(call escape,$(REMOTE_USER)@$(REMOTE_HOST):$(REMOTE_DIR)/)' --delete
