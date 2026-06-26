@@ -30,7 +30,7 @@ GEM
     htmlbeautifier (1.4.3)
     htmlcompressor (0.4.0)
     http_parser.rb (0.8.1)
-    i18n (1.15.1)
+    i18n (1.15.2)
       concurrent-ruby (~> 1.0)
     jekyll (4.4.1)
       addressable (~> 2.4)
@@ -68,7 +68,7 @@ GEM
       jekyll
     jekyll-watch (2.2.1)
       listen (~> 3.0)
-    json (2.19.9)
+    json (2.20.0)
     kramdown (2.5.2)
       rexml (>= 3.4.4)
     kramdown-parser-gfm (1.1.0)
