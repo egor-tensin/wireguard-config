@@ -175,8 +175,10 @@ class Address4 {
         this.isInSubnet = common.isInSubnet;
         /**
          * Returns true if this address's host bits fall inside the given subnet,
-         * ignoring this address's own subnet mask. See
-         * {@link common.isHostInSubnet}.
+         * ignoring this address's own subnet mask. Prefer this over `isInSubnet`
+         * when classifying a single address, so the answer doesn't change with the
+         * CIDR suffix the caller happened to write — notably when the address came
+         * from untrusted input and the result backs a trust-boundary decision.
          * @returns {boolean}
          */
         this.isHostInSubnet = common.isHostInSubnet;
@@ -467,7 +469,10 @@ class Address4 {
         return Address4.fromHex(bigInt.toString(16).padStart(8, '0'));
     }
     /**
-     * Convert a byte array to an Address4 object.
+     * Convert a byte array to an Address4 object. Throws `AddressError` unless
+     * given exactly 4 integers from 0 to 255. Signed bytes are rejected, so
+     * this differs from `Address6.fromByteArray`, which folds them; the two
+     * contracts converge on this stricter form in the next major version.
      *
      * To convert from a Node.js `Buffer`, spread it: `Address4.fromByteArray([...buf])`.
      * @param {Array<number>} bytes - an array of 4 bytes (0-255)
@@ -478,7 +483,12 @@ class Address4 {
         return this.fromUnsignedByteArray(bytes);
     }
     /**
-     * Convert an unsigned byte array to an Address4 object
+     * Convert an unsigned byte array to an Address4 object. Throws
+     * `AddressError` unless given exactly 4 bytes, and rejects values outside
+     * 0 to 255 when parsing the resulting address.
+     *
+     * To convert from a Node.js `Buffer`, spread it:
+     * `Address4.fromUnsignedByteArray([...buf])`.
      * @param {Array<number>} bytes - an array of 4 unsigned bytes (0-255)
      * @returns {Address4}
      */
@@ -508,7 +518,8 @@ class Address4 {
         return this.binaryZeroPad().slice(start, end);
     }
     /**
-     * Return the reversed ip6.arpa form of the address
+     * Return the reversed in-addr.arpa form of the address, e.g.
+     * `42.2.0.192.in-addr.arpa.` for `192.0.2.42`.
      * @param {Object} options
      * @param {boolean} options.omitSuffix - omit the "in-addr.arpa" suffix
      * @returns {String}
@@ -583,7 +594,12 @@ class Address4 {
         return this._binaryZeroPad;
     }
     /**
-     * Groups an IPv4 address for inclusion at the end of an IPv6 address
+     * Groups an IPv4 address for inclusion at the end of an IPv6 address.
+     *
+     * Returns an HTML fragment: each half of the address is wrapped in a
+     * `<span>` carrying the group classes an address-inspector UI hovers on.
+     * The address content is HTML-escaped; anything you concatenate around it
+     * is your responsibility.
      * @returns {String}
      */
     groupForV6() {
@@ -709,8 +725,10 @@ class Address6 {
         this.isInSubnet = common.isInSubnet;
         /**
          * Returns true if this address's host bits fall inside the given subnet,
-         * ignoring this address's own subnet mask. See
-         * {@link common.isHostInSubnet}.
+         * ignoring this address's own subnet mask. Prefer this over `isInSubnet`
+         * when classifying a single address, so the answer doesn't change with the
+         * CIDR suffix the caller happened to write — notably when the address came
+         * from untrusted input and the result backs a trust-boundary decision.
          * @returns {boolean}
          */
         this.isHostInSubnet = common.isHostInSubnet;
@@ -805,29 +823,24 @@ class Address6 {
         let host;
         let port = null;
         let result;
+        let error;
         // Remove the protocol prefix, if any
         const stripped = url.replace(/^[a-z][a-z0-9+.-]*:\/\//i, '');
         // If we have brackets parse them and find a port
         if (stripped.indexOf('[') !== -1 && stripped.indexOf(']:') !== -1) {
+            error = 'failed to parse address with port';
             result = constants6.RE_URL_WITH_PORT.exec(stripped);
             if (result === null) {
-                return {
-                    error: 'failed to parse address with port',
-                    address: null,
-                    port: null,
-                };
+                return { error, address: null, port: null };
             }
             host = result[1];
             port = result[2];
         }
         else {
+            error = 'failed to parse address from URL';
             result = constants6.RE_URL.exec(stripped);
             if (result === null) {
-                return {
-                    error: 'failed to parse address from URL',
-                    address: null,
-                    port: null,
-                };
+                return { error, address: null, port: null };
             }
             host = (_a = result[1]) !== null && _a !== void 0 ? _a : result[2];
         }
@@ -843,10 +856,17 @@ class Address6 {
             // Standardize `undefined` to `null`
             port = null;
         }
-        return {
-            address: new Address6(host),
-            port,
-        };
+        // The URL character class is a superset of valid IPv6, so a host the
+        // regex accepted (an IPv4 literal, bare punctuation, too many groups)
+        // can still be rejected by the parser
+        let address;
+        try {
+            address = new Address6(host);
+        }
+        catch {
+            return { error, address: null, port: null };
+        }
+        return { address, port };
     }
     /**
      * Construct an `Address6` from an address and a hex subnet mask given as
@@ -1848,7 +1868,12 @@ class Address6 {
         return `<a href="${safeHref}">${safeForm}</a>`;
     }
     /**
-     * Groups an address
+     * Groups an address.
+     *
+     * Returns an HTML fragment: each group is wrapped in a `<span>` carrying
+     * the group classes an address-inspector UI hovers on. The address content
+     * is HTML-escaped; anything you concatenate around it is your
+     * responsibility.
      * @returns {String}
      */
     group() {
