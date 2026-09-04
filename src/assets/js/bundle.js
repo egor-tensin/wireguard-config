@@ -16,6 +16,8 @@ exports.AddressError = AddressError;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.isInSubnet = isInSubnet;
 exports.isHostInSubnet = isHostInSubnet;
+exports.isGloballyReachable = isGloballyReachable;
+exports.offsetBigInt = offsetBigInt;
 exports.isCorrect = isCorrect;
 exports.prefixLengthFromMask = prefixLengthFromMask;
 exports.assertByteArray = assertByteArray;
@@ -53,6 +55,40 @@ function isInSubnet(address) {
  */
 function isHostInSubnet(address) {
     return this.mask(address.subnetMask) === address.mask();
+}
+/**
+ * Returns whether the registry marks this address globally reachable: the
+ * answer of the most specific entry containing it that has one, or `true`
+ * when no entry contains it.
+ */
+function isGloballyReachable(entries) {
+    let best = null;
+    for (let i = 0; i < entries.length; i++) {
+        const entry = entries[i];
+        if (entry.reachable !== null &&
+            isHostInSubnet.call(this, entry.subnet) &&
+            (best === null || entry.subnet.subnetMask > best.subnet.subnetMask)) {
+            best = entry;
+        }
+    }
+    return best === null ? true : best.reachable;
+}
+/**
+ * Adds `n` to `value` and returns the result, throwing `AddressError` unless
+ * `n` is an integer and the result stays within `[0, 2**bits - 1]`.
+ */
+function offsetBigInt(value, n, bits, family) {
+    if (typeof n === 'number' && !Number.isSafeInteger(n)) {
+        throw new address_error_1.AddressError(`${family} offset must be an integer`);
+    }
+    if (typeof n !== 'number' && typeof n !== 'bigint') {
+        throw new address_error_1.AddressError(`${family} offset must be an integer`);
+    }
+    const result = value + BigInt(n);
+    if (result < BigInt(0) || result > (BigInt(1) << BigInt(bits)) - BigInt(1)) {
+        throw new address_error_1.AddressError(`${family} offset leaves the address space`);
+    }
+    return result;
 }
 function isCorrect(defaultBits) {
     return function isCorrectForm() {
@@ -407,6 +443,33 @@ class Address4 {
         return Address4.fromBigInt(this._startAddress() + adjust);
     }
     /**
+     * Returns the address `n` addresses after this one (or before, when `n` is
+     * negative), keeping this address's subnet mask. Throws `AddressError` when
+     * the result would fall outside the IPv4 address space or `n` is not an
+     * integer.
+     * @param {number | bigint} n
+     * @returns {Address4}
+     * @example
+     * new Address4('10.0.0.0/24').offset(1).correctForm(); // '10.0.0.1'
+     */
+    offset(n) {
+        return Address4.fromBigInt(common.offsetBigInt(this.bigInt(), n, constants.BITS, 'IPv4')).withSubnetMask(this.subnetMask);
+    }
+    /**
+     * Returns the network that follows this address's network: the address after
+     * {@link endAddress}, with the same subnet mask. Throws `AddressError` when
+     * this network is the last one in the address space.
+     * @returns {Address4}
+     * @example
+     * new Address4('10.0.0.0/24').nextNetwork().networkForm(); // '10.0.1.0/24'
+     */
+    nextNetwork() {
+        return Address4.fromBigInt(common.offsetBigInt(this._endAddress(), 1, constants.BITS, 'IPv4')).withSubnetMask(this.subnetMask);
+    }
+    withSubnetMask(subnetMask) {
+        return new Address4(`${this.correctForm()}/${subnetMask}`);
+    }
+    /**
      * Helper function getting end address.
      * @returns {bigint}
      */
@@ -584,6 +647,43 @@ class Address4 {
         return this.isHostInSubnet(CGNAT_V4);
     }
     /**
+     * Returns true if the address is in one of the documentation ranges
+     * `192.0.2.0/24`, `198.51.100.0/24`, or `203.0.113.0/24` ([RFC 5737](https://datatracker.ietf.org/doc/html/rfc5737)).
+     * @returns {boolean}
+     */
+    isDocumentation() {
+        return DOCUMENTATION_V4.some((subnet) => this.isHostInSubnet(subnet));
+    }
+    /**
+     * Returns true if the address is in the benchmarking range `198.18.0.0/15` ([RFC 2544](https://datatracker.ietf.org/doc/html/rfc2544)).
+     * @returns {boolean}
+     */
+    isBenchmarking() {
+        return this.isHostInSubnet(BENCHMARKING_V4);
+    }
+    /**
+     * Returns true if the address is in the reserved range `240.0.0.0/4` ([RFC 1112](https://datatracker.ietf.org/doc/html/rfc1112)),
+     * which includes the limited broadcast address.
+     * @returns {boolean}
+     */
+    isReserved() {
+        return this.isHostInSubnet(RESERVED_V4);
+    }
+    /**
+     * Returns true if the address is globally reachable: not multicast, and not
+     * in any block the [IANA IPv4 Special-Purpose Address Registry](https://www.iana.org/assignments/iana-ipv4-special-registry/)
+     * marks as not globally reachable. That covers everything the individual
+     * classifiers name (private, loopback, link-local, CGNAT, unspecified,
+     * broadcast, documentation, benchmarking, reserved) and the blocks they do
+     * not, such as `0.0.0.0/8` and the IETF protocol assignments in
+     * `192.0.0.0/24`. This is the single predicate to use where a request must
+     * not reach an internal or special-purpose destination; see SECURITY.md.
+     * @returns {boolean}
+     */
+    isGlobal() {
+        return !this.isMulticast() && common.isGloballyReachable.call(this, SPECIAL_PURPOSE_V4);
+    }
+    /**
      * Returns a zero-padded base-2 string representation of the address
      * @returns {string}
      */
@@ -623,6 +723,17 @@ const LINK_LOCAL_V4 = new Address4('169.254.0.0/16');
 const UNSPECIFIED_V4 = new Address4('0.0.0.0/32');
 const BROADCAST_V4 = new Address4('255.255.255.255/32');
 const CGNAT_V4 = new Address4('100.64.0.0/10');
+const DOCUMENTATION_V4 = [
+    new Address4('192.0.2.0/24'),
+    new Address4('198.51.100.0/24'),
+    new Address4('203.0.113.0/24'),
+];
+const BENCHMARKING_V4 = new Address4('198.18.0.0/15');
+const RESERVED_V4 = new Address4('240.0.0.0/4');
+const SPECIAL_PURPOSE_V4 = constants.SPECIAL_PURPOSE.map(([cidr, , reachable]) => ({
+    subnet: new Address4(cidr),
+    reachable,
+}));
 
 },{"./address-error":1,"./common":2,"./v4/constants":5}],4:[function(require,module,exports){
 "use strict";
@@ -966,28 +1077,31 @@ class Address6 {
         return new Address6(`::ffff:${address4.correctForm()}/${mask6}`);
     }
     /**
-     * Return an address from ip6.arpa form
+     * Return an address from ip6.arpa form. A full 32-nibble name gives a /128
+     * address; a shorter name, as used for a delegated reverse zone, gives the
+     * network it covers, with a subnet mask of four bits per nibble, so
+     * `fromArpa(x.reverseForm())` round-trips {@link reverseForm} for any prefix.
      * @param {string} arpaFormAddress - an 'ip6.arpa' form address
      * @returns {Adress6}
      * @example
      * var address = Address6.fromArpa(e.f.f.f.3.c.2.6.f.f.f.e.6.6.8.e.1.0.6.7.9.4.e.c.0.0.0.0.1.0.0.2.ip6.arpa.)
      * address.correctForm(); // '2001:0:ce49:7601:e866:efff:62c3:fffe'
+     * Address6.fromArpa('8.b.d.0.1.0.0.2.ip6.arpa.').networkForm(); // '2001:db8::/32'
      */
     static fromArpa(arpaFormAddress) {
-        // remove ending ".ip6.arpa." or just "."
-        let address = arpaFormAddress.replace(/(\.ip6\.arpa)?\.$/, '');
-        const semicolonAmount = 7;
-        // correct ip6.arpa form with ending removed will be 63 characters
-        if (address.length !== 63) {
+        // remove an ending ".ip6.arpa", with or without the root dot
+        const nibbles = arpaFormAddress.replace(/(\.ip6\.arpa)?\.?$/, '');
+        if (!/^[0-9a-f](\.[0-9a-f]){0,31}$/i.test(nibbles)) {
             throw new address_error_1.AddressError("Invalid 'ip6.arpa' form.");
         }
-        const parts = address.split('.').reverse();
-        for (let i = semicolonAmount; i > 0; i--) {
-            const insertIndex = i * 4;
-            parts.splice(insertIndex, 0, ':');
+        const reversed = nibbles.split('.').reverse();
+        const subnetMask = reversed.length * 4;
+        const hex = reversed.join('').padEnd(32, '0');
+        const groups = [];
+        for (let i = 0; i < constants6.GROUPS; i++) {
+            groups.push(hex.slice(i * 4, (i + 1) * 4));
         }
-        address = parts.join('');
-        return new Address6(address);
+        return new Address6(`${groups.join(':')}/${subnetMask}`);
     }
     /**
      * Return the Microsoft UNC transcription of the address
@@ -1051,21 +1165,52 @@ class Address6 {
         return BigInt(`0b${this.mask() + '1'.repeat(constants6.BITS - this.subnetMask)}`);
     }
     /**
-     * The last address in the range given by this address' subnet
-     * Often referred to as the Broadcast
+     * The last address in the range given by this address's subnet. IPv6 has
+     * no broadcast address, so this is an ordinary assignable address (in a
+     * 64-bit-interface-identifier subnet it falls inside the reserved
+     * subnet-anycast block of [RFC 2526](https://datatracker.ietf.org/doc/html/rfc2526)).
      * @returns {Address6}
      */
     endAddress() {
         return Address6.fromBigInt(this._endAddress());
     }
     /**
-     * The last host address in the range given by this address's subnet ie
-     * the last address prior to the Broadcast Address
+     * The address one before {@link endAddress}. This is the IPv6 counterpart
+     * of the IPv4 method that skips the broadcast address; IPv6 has no broadcast,
+     * so it drops exactly one address and does not model the 128 reserved
+     * subnet-anycast identifiers of [RFC 2526](https://datatracker.ietf.org/doc/html/rfc2526).
      * @returns {Address6}
      */
     endAddressExclusive() {
         const adjust = BigInt('1');
         return Address6.fromBigInt(this._endAddress() - adjust);
+    }
+    /**
+     * Returns the address `n` addresses after this one (or before, when `n` is
+     * negative), keeping this address's subnet mask. Throws `AddressError` when
+     * the result would fall outside the IPv6 address space or `n` is not an
+     * integer.
+     * @param {number | bigint} n
+     * @returns {Address6}
+     * @example
+     * new Address6('2001:db8::/64').offset(1).correctForm(); // '2001:db8::1'
+     */
+    offset(n) {
+        return Address6.fromBigInt(common.offsetBigInt(this.bigInt(), n, constants6.BITS, 'IPv6')).withSubnetMask(this.subnetMask);
+    }
+    /**
+     * Returns the network that follows this address's network: the address after
+     * {@link endAddress}, with the same subnet mask. Throws `AddressError` when
+     * this network is the last one in the address space.
+     * @returns {Address6}
+     * @example
+     * new Address6('2001:db8::/64').nextNetwork().networkForm(); // '2001:db8:0:1::/64'
+     */
+    nextNetwork() {
+        return Address6.fromBigInt(common.offsetBigInt(this._endAddress(), 1, constants6.BITS, 'IPv6')).withSubnetMask(this.subnetMask);
+    }
+    withSubnetMask(subnetMask) {
+        return new Address6(`${this.correctForm()}/${subnetMask}`);
     }
     /**
      * The hex form of the subnet mask, e.g. `ffff:ffff:ffff:ffff::` for a
@@ -1649,7 +1794,10 @@ class Address6 {
         return this.addressMinusSuffix === this.canonicalForm();
     }
     /**
-     * Returns true if the address is a link local address, false otherwise
+     * Returns true if the address is a link-local unicast address in `fe80::/10`
+     * ([RFC 4291 §2.4](https://datatracker.ietf.org/doc/html/rfc4291#section-2.4))
+     * or an IPv4-mapped / NAT64 address whose embedded IPv4 address is link-local
+     * (`169.254.0.0/16`, e.g. `::ffff:169.254.169.254`), false otherwise.
      * @returns {boolean}
      */
     isLinkLocal() {
@@ -1657,12 +1805,7 @@ class Address6 {
         if (embedded) {
             return embedded.isLinkLocal();
         }
-        // Zeroes are required, i.e. we can't check isHostInSubnet with 'fe80::/10'
-        if (this.getBitsBase2(0, 64) ===
-            '1111111010000000000000000000000000000000000000000000000000000000') {
-            return true;
-        }
-        return false;
+        return this.isHostInSubnet(LINK_LOCAL_SUBNET);
     }
     /**
      * Returns true if the address is a multicast address, false otherwise
@@ -1754,12 +1897,20 @@ class Address6 {
     }
     /**
      * Returns true if the address is private, i.e. a Unique Local Address in
-     * `fc00::/7` ([RFC 4193](https://datatracker.ietf.org/doc/html/rfc4193)) or an
-     * IPv4-mapped / NAT64 address whose embedded IPv4 address is in one of the
-     * [RFC 1918](https://datatracker.ietf.org/doc/html/rfc1918) private ranges
-     * (e.g. `::ffff:10.0.0.1`). This is the IPv6 counterpart to
+     * `fc00::/7` ([RFC 4193](https://datatracker.ietf.org/doc/html/rfc4193)), an
+     * address in the NAT64 local-use range `64:ff9b:1::/48`
+     * ([RFC 8215](https://datatracker.ietf.org/doc/html/rfc8215)), or an
+     * IPv4-mapped / NAT64 well-known address whose embedded IPv4 address is in
+     * one of the [RFC 1918](https://datatracker.ietf.org/doc/html/rfc1918)
+     * private ranges (e.g. `::ffff:10.0.0.1`). This is the IPv6 counterpart to
      * {@link Address4.isPrivate}; use it instead of {@link isULA} when you need to
      * catch mapped RFC 1918 addresses as well as native ULAs.
+     *
+     * The local-use NAT64 range is reported private as a whole rather than by
+     * its embedded IPv4 address: an operator may carve a prefix of any RFC 6052
+     * length out of `64:ff9b:1::/48`, so the same bits decode to different IPv4
+     * addresses under different deployments and no single decoding is correct.
+     * Use {@link toAddress4Nat64} with the deployment's prefix to decode one.
      * @returns {boolean}
      */
     isPrivate() {
@@ -1767,7 +1918,7 @@ class Address6 {
         if (embedded) {
             return embedded.isPrivate();
         }
-        return this.isULA();
+        return this.isULA() || this.isHostInSubnet(NAT64_LOCAL_USE_SUBNET);
     }
     /**
      * Returns true if the address is an IPv4-mapped / NAT64 address whose embedded
@@ -1815,7 +1966,49 @@ class Address6 {
      * @returns {boolean}
      */
     isDocumentation() {
-        return this.isHostInSubnet(DOCUMENTATION_SUBNET);
+        return DOCUMENTATION_SUBNETS.some((subnet) => this.isHostInSubnet(subnet));
+    }
+    /**
+     * Returns true if the address is in the benchmarking range `2001:2::/48`
+     * ([RFC 5180](https://datatracker.ietf.org/doc/html/rfc5180)) or is an
+     * IPv4-mapped / NAT64 address whose embedded IPv4 address is in
+     * `198.18.0.0/15`, false otherwise.
+     * @returns {boolean}
+     */
+    isBenchmarking() {
+        const embedded = this.embeddedIPv4();
+        if (embedded) {
+            return embedded.isBenchmarking();
+        }
+        return this.isHostInSubnet(BENCHMARKING_SUBNET);
+    }
+    /**
+     * Returns true if the address is globally reachable: inside the global
+     * unicast allocation `2000::/3` (the only range the [IANA IPv6 Address Space
+     * Registry](https://www.iana.org/assignments/ipv6-address-space/) assigns
+     * for global unicast; everything else is reserved, ULA, link-local, or
+     * multicast) and not in any block the [IANA IPv6 Special-Purpose Address Registry](https://www.iana.org/assignments/iana-ipv6-special-registry/)
+     * marks as not globally reachable. An IPv4-mapped or NAT64 well-known
+     * address answers for its embedded IPv4 address, so `::ffff:10.0.0.1` and
+     * `64:ff9b::7f00:1` are not global. Teredo (`2001::/32`) and 6to4
+     * (`2002::/16`) are not global either: the registry lists them as N/A and a
+     * packet to one needs a relay.
+     *
+     * This covers everything the individual classifiers name and the blocks they
+     * do not: the discard-only prefix `100::/64`, the IETF protocol assignments
+     * in `2001::/23`, the deprecated site-local `fec0::/10` and IPv4-compatible
+     * `::/96` ranges, and unallocated space such as `4000::/3`. It is the single
+     * predicate to use where a request must not reach an internal or
+     * special-purpose destination; see SECURITY.md.
+     * @returns {boolean}
+     */
+    isGlobal() {
+        const embedded = this.embeddedIPv4();
+        if (embedded) {
+            return embedded.isGlobal();
+        }
+        return (this.isHostInSubnet(GLOBAL_UNICAST_SUBNET) &&
+            common.isGloballyReachable.call(this, SPECIAL_PURPOSE_V6));
     }
     // #endregion
     // #region HTML
@@ -1974,14 +2167,22 @@ const TYPE_SUBNETS = Object.keys(constants6.TYPES).map((subnet) => [
 const TEREDO_SUBNET = new Address6('2001::/32');
 const SIX_TO_FOUR_SUBNET = new Address6('2002::/16');
 const ULA_SUBNET = new Address6('fc00::/7');
-const DOCUMENTATION_SUBNET = new Address6('2001:db8::/32');
+const LINK_LOCAL_SUBNET = new Address6('fe80::/10');
+const DOCUMENTATION_SUBNETS = [new Address6('2001:db8::/32'), new Address6('3fff::/20')];
+const BENCHMARKING_SUBNET = new Address6('2001:2::/48');
+const GLOBAL_UNICAST_SUBNET = new Address6('2000::/3');
+const SPECIAL_PURPOSE_V6 = constants6.SPECIAL_PURPOSE.map(([cidr, , reachable]) => ({
+    subnet: new Address6(cidr),
+    reachable,
+}));
 const IPV4_MAPPED_SUBNET = new Address6('::ffff:0:0/96');
 const NAT64_WELL_KNOWN_SUBNET = new Address6('64:ff9b::/96');
+const NAT64_LOCAL_USE_SUBNET = new Address6('64:ff9b:1::/48');
 
 },{"./address-error":1,"./common":2,"./ipv4":3,"./v4/constants":5,"./v6/constants":6,"./v6/helpers":7,"./v6/regular-expressions":8}],5:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RE_SUBNET_STRING = exports.RE_ADDRESS = exports.GROUPS = exports.BITS = void 0;
+exports.SPECIAL_PURPOSE = exports.RE_SUBNET_STRING = exports.RE_ADDRESS = exports.GROUPS = exports.BITS = void 0;
 exports.BITS = 32;
 exports.GROUPS = 4;
 // Each octet is 0-255 written without a leading zero. A leading zero is
@@ -1990,11 +2191,50 @@ exports.GROUPS = 4;
 // disagree with the network stack about which host a string names.
 exports.RE_ADDRESS = /^(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])$/g;
 exports.RE_SUBNET_STRING = /\/\d{1,2}$/;
+/**
+ * The IANA IPv4 Special-Purpose Address Registry
+ * (https://www.iana.org/assignments/iana-ipv4-special-registry/), one entry
+ * per block: `[cidr, name, globallyReachable]`. A `null` reachability means
+ * the registry leaves the column blank and the block inherits the answer of
+ * the block containing it (or is global when nothing contains it).
+ *
+ * `Address4.isGlobal()` answers from the most specific entry containing the
+ * address. `test/data/iana-corpus.json` is generated from the registry's CSV
+ * and pins this table to it.
+ */
+exports.SPECIAL_PURPOSE = [
+    ['0.0.0.0/8', 'This network', false],
+    ['0.0.0.0/32', 'This host on this network', false],
+    ['10.0.0.0/8', 'Private-Use', false],
+    ['100.64.0.0/10', 'Shared Address Space', false],
+    ['127.0.0.0/8', 'Loopback', false],
+    ['169.254.0.0/16', 'Link Local', false],
+    ['172.16.0.0/12', 'Private-Use', false],
+    ['192.0.0.0/24', 'IETF Protocol Assignments', false],
+    ['192.0.0.0/29', 'IPv4 Service Continuity Prefix', false],
+    ['192.0.0.8/32', 'IPv4 dummy address', false],
+    ['192.0.0.9/32', 'Port Control Protocol Anycast', true],
+    ['192.0.0.10/32', 'Traversal Using Relays around NAT Anycast', true],
+    ['192.0.0.170/32', 'NAT64/DNS64 Discovery', false],
+    ['192.0.0.171/32', 'NAT64/DNS64 Discovery', false],
+    ['192.0.2.0/24', 'Documentation (TEST-NET-1)', false],
+    ['192.31.196.0/24', 'AS112-v4', true],
+    ['192.52.193.0/24', 'AMT', true],
+    ['192.88.99.0/24', 'Deprecated (6to4 Relay Anycast)', null],
+    ['192.88.99.2/32', '6a44-relay anycast address', false],
+    ['192.168.0.0/16', 'Private-Use', false],
+    ['192.175.48.0/24', 'Direct Delegation AS112 Service', true],
+    ['198.18.0.0/15', 'Benchmarking', false],
+    ['198.51.100.0/24', 'Documentation (TEST-NET-2)', false],
+    ['203.0.113.0/24', 'Documentation (TEST-NET-3)', false],
+    ['240.0.0.0/4', 'Reserved', false],
+    ['255.255.255.255/32', 'Limited Broadcast', false],
+];
 
 },{}],6:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RE_URL_WITH_PORT = exports.RE_URL = exports.RE_ZONE_STRING = exports.RE_SUBNET_STRING = exports.RE_BAD_ADDRESS = exports.RE_BAD_CHARACTERS = exports.TYPES = exports.SCOPES = exports.GROUPS = exports.BITS = void 0;
+exports.SPECIAL_PURPOSE = exports.RE_URL_WITH_PORT = exports.RE_URL = exports.RE_ZONE_STRING = exports.RE_SUBNET_STRING = exports.RE_BAD_ADDRESS = exports.RE_BAD_CHARACTERS = exports.TYPES = exports.SCOPES = exports.GROUPS = exports.BITS = void 0;
 exports.BITS = 128;
 exports.GROUPS = 8;
 /**
@@ -2042,8 +2282,14 @@ exports.TYPES = {
     'ff00::/8': 'Multicast',
     'fe80::/10': 'Link-local unicast',
     'fc00::/7': 'Unique local',
+    '2001::/32': 'Teredo',
+    '2001:2::/48': 'Benchmarking',
     '2002::/16': '6to4',
     '2001:db8::/32': 'Documentation',
+    '3fff::/20': 'Documentation',
+    '100::/64': 'Discard-only',
+    'fec0::/10': 'Site-local unicast (deprecated)',
+    '::/96': 'IPv4-compatible (deprecated)',
     '64:ff9b::/96': 'NAT64 (well-known)',
     '64:ff9b:1::/48': 'NAT64 (local-use)',
 };
@@ -2073,6 +2319,46 @@ exports.RE_SUBNET_STRING = /\/\d{1,3}(?=%|$)/;
 exports.RE_ZONE_STRING = /%.*$/;
 exports.RE_URL = /^(?:\[([0-9a-f:.]+)\]|([0-9a-f:.]+))(?:[/?#].*)?$/i;
 exports.RE_URL_WITH_PORT = /^\[([0-9a-f:.]+)\]:([0-9]{1,5})(?:[/?#].*)?$/i;
+/**
+ * The IANA IPv6 Special-Purpose Address Registry
+ * (https://www.iana.org/assignments/iana-ipv6-special-registry/), one entry
+ * per block: `[cidr, name, globallyReachable]`. A `null` reachability means
+ * the registry says N/A or leaves the column blank; N/A blocks (Teredo, 6to4)
+ * are treated as not globally reachable, since a packet to one needs a relay,
+ * and blank blocks inherit the answer of the block containing them.
+ *
+ * `Address6.isGlobal()` answers from the most specific entry containing the
+ * address, after delegating IPv4-mapped and NAT64 well-known addresses to the
+ * embedded IPv4 address. `test/data/iana-corpus.json` is generated from the
+ * registry's CSV and pins this table to it.
+ */
+exports.SPECIAL_PURPOSE = [
+    ['::1/128', 'Loopback Address', false],
+    ['::/128', 'Unspecified Address', false],
+    ['::ffff:0:0/96', 'IPv4-mapped Address', false],
+    ['64:ff9b::/96', 'IPv4-IPv6 Translat.', true],
+    ['64:ff9b:1::/48', 'IPv4-IPv6 Translat.', false],
+    ['100::/64', 'Discard-Only Address Block', false],
+    ['100:0:0:1::/64', 'Dummy IPv6 Prefix', false],
+    ['2001::/23', 'IETF Protocol Assignments', false],
+    ['2001::/32', 'TEREDO', false],
+    ['2001:1::1/128', 'Port Control Protocol Anycast', true],
+    ['2001:1::2/128', 'Traversal Using Relays around NAT Anycast', true],
+    ['2001:1::3/128', 'DNS-SD Service Registration Protocol Anycast', true],
+    ['2001:2::/48', 'Benchmarking', false],
+    ['2001:3::/32', 'AMT', true],
+    ['2001:4:112::/48', 'AS112-v6', true],
+    ['2001:10::/28', 'Deprecated (previously ORCHID)', null],
+    ['2001:20::/28', 'ORCHIDv2', true],
+    ['2001:30::/28', 'Drone Remote ID Protocol Entity Tags (DETs) Prefix', true],
+    ['2001:db8::/32', 'Documentation', false],
+    ['2002::/16', '6to4', false],
+    ['2620:4f:8000::/48', 'Direct Delegation AS112 Service', true],
+    ['3fff::/20', 'Documentation', false],
+    ['5f00::/16', 'Segment Routing (SRv6) SIDs', false],
+    ['fc00::/7', 'Unique-Local', false],
+    ['fe80::/10', 'Link-Local Unicast', false],
+];
 
 },{}],7:[function(require,module,exports){
 "use strict";
