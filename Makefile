@@ -18,35 +18,9 @@ deps: ruby
 	bundle install
 	npm install
 
-.PHONY: browserify
-browserify: src/assets/js/bundle.js
-
-src/assets/js/bundle.js: package-lock.json
-	npm exec -- browserify --require ip-address --outfile '$(call escape,$@)'
-
 .PHONY: maintenance
 maintenance: ruby
-	bundle config set frozen false
-	bundle update
-
-	npm update
-	@$(MAKE) browserify
-
-	@git_status="$$( git status --porcelain=v1 )" && \
-	allowed=' M Gemfile.lock| M package-lock.json| M src/assets/js/bundle.js' && \
-	if [ -z "$$git_status" ]; then \
-		true; \
-	elif ! echo "$$git_status" | grep -E -q --invert-match --line-regexp "($$allowed)"; then \
-		git commit -am 'bump dependencies' && \
-			git push -q; \
-	else \
-		echo; \
-		echo '-----------------------------------------------------------------'; \
-		echo 'Error: unrecognized modifications in the repository:'; \
-		echo "$$git_status"; \
-		echo '-----------------------------------------------------------------'; \
-		exit 1; \
-	fi
+	./scripts/maintenance.sh
 
 jekyll := bundle exec jekyll
 
