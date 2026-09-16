@@ -8,9 +8,8 @@
 set -o errexit -o nounset -o pipefail
 shopt -s inherit_errexit lastpipe
 
-script_path="$( readlink --canonicalize-existing -- "${BASH_SOURCE[0]}" )"
-readonly script_path
-script_dir="$( dirname -- "$script_path" )"
+script_dir="$( dirname -- "${BASH_SOURCE[0]}" )"
+script_dir="$( cd -- "$script_dir" && pwd )"
 readonly script_dir
 
 update_gems() {
