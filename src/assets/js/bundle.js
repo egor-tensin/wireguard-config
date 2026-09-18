@@ -52,8 +52,20 @@ function isInSubnet(address) {
  * {@link isInSubnet} when classifying a single address — notably when the
  * address came from untrusted input and the result backs a trust-boundary
  * decision such as an SSRF allow/deny filter.
+ *
+ * An address of one family is never inside a network of the other, so an
+ * `Address4` against an `Address6` (or the reverse) is `false`. To compare
+ * across families, convert first: `Address6.fromAddress4()`, `to4()`, or
+ * `toAddress4Nat64()`.
  */
 function isHostInSubnet(address) {
+    // mask() is a bit string of the family's width, and the leading bits of a
+    // 32-bit string can coincide with those of a 128-bit one (a00::1 and
+    // 10.0.0.0/8 both mask to 00001010), so the widths must agree before the
+    // strings are compared.
+    if (this.binaryZeroPad().length !== address.binaryZeroPad().length) {
+        return false;
+    }
     return this.mask(address.subnetMask) === address.mask();
 }
 /**
@@ -205,7 +217,9 @@ class Address4 {
          */
         this.isCorrect = isCorrect4;
         /**
-         * Returns true if the given address is in the subnet of the current address
+         * Returns true if the given address is in the subnet of the current address.
+         * An `Address6` is never in the subnet of an `Address4`; convert with
+         * `to4()` or `Address6.fromAddress4()` to compare across families.
          * @returns {boolean}
          */
         this.isInSubnet = common.isInSubnet;
@@ -215,6 +229,8 @@ class Address4 {
          * when classifying a single address, so the answer doesn't change with the
          * CIDR suffix the caller happened to write — notably when the address came
          * from untrusted input and the result backs a trust-boundary decision.
+         * An `Address6` is never in the subnet of an `Address4`; convert with
+         * `to4()` or `Address6.fromAddress4()` to compare across families.
          * @returns {boolean}
          */
         this.isHostInSubnet = common.isHostInSubnet;
@@ -228,6 +244,13 @@ class Address4 {
                 throw new address_error_1.AddressError('Invalid subnet mask.');
             }
             address = address.replace(constants.RE_SUBNET_STRING, '');
+        }
+        // Four three-digit octets and three dots: the longest well-formed address
+        // is 15 characters. Longer input is rejected before parsing, as Address6
+        // does at its own limit.
+        const longest = constants.GROUPS * 4 - 1;
+        if (address.length > longest) {
+            throw new address_error_1.AddressError(`IPv4 addresses are at most ${longest} characters.`);
         }
         this.addressMinusSuffix = address;
         this.parsedAddress = this.parse(address);
@@ -370,16 +393,20 @@ class Address4 {
         return Address4.fromHex(integer.toString(16).padStart(8, '0'));
     }
     /**
-     * Return an address from in-addr.arpa form
+     * Return an address from in-addr.arpa form: the four octets reversed, with
+     * or without the `.in-addr.arpa` suffix and root dot, in any case. Throws
+     * `AddressError` unless the reversed labels form a valid IPv4 address, so
+     * `fromArpa(x.reverseForm())` round-trips {@link reverseForm}.
      * @param {string} arpaFormAddress - an 'in-addr.arpa' form ipv4 address
      * @returns {Adress4}
      * @example
-     * var address = Address4.fromArpa(42.2.0.192.in-addr.arpa.)
+     * var address = Address4.fromArpa('42.2.0.192.in-addr.arpa.')
      * address.correctForm(); // '192.0.2.42'
      */
     static fromArpa(arpaFormAddress) {
-        // remove ending ".in-addr.arpa." or just "."
-        const leader = arpaFormAddress.replace(/(\.in-addr\.arpa)?\.$/, '');
+        // remove an ending ".in-addr.arpa", in any case and with or without the
+        // root dot, as Address6.fromArpa does for ".ip6.arpa"
+        const leader = arpaFormAddress.replace(/(\.in-addr\.arpa)?\.?$/i, '');
         const address = leader.split('.').reverse().join('.');
         return new Address4(address);
     }
@@ -830,7 +857,9 @@ class Address6 {
         this.zone = '';
         // #region Attributes
         /**
-         * Returns true if the given address is in the subnet of the current address
+         * Returns true if the given address is in the subnet of the current address.
+         * An `Address4` is never in the subnet of an `Address6`; convert with
+         * `Address6.fromAddress4()` or `to4()` to compare across families.
          * @returns {boolean}
          */
         this.isInSubnet = common.isInSubnet;
@@ -840,6 +869,8 @@ class Address6 {
          * when classifying a single address, so the answer doesn't change with the
          * CIDR suffix the caller happened to write — notably when the address came
          * from untrusted input and the result backs a trust-boundary decision.
+         * An `Address4` is never in the subnet of an `Address6`; convert with
+         * `Address6.fromAddress4()` or `to4()` to compare across families.
          * @returns {boolean}
          */
         this.isHostInSubnet = common.isHostInSubnet;
@@ -877,6 +908,16 @@ class Address6 {
         if (zone) {
             this.zone = zone[0];
             address = address.replace(constants6.RE_ZONE_STRING, '');
+        }
+        // The longest well-formed address is all but the last two groups written
+        // as four hex digits with their colons, then a 15-character dotted quad:
+        // 5 * (groups - 2) + 15, which is 45 for eight groups, the same line
+        // CPython's ipaddress module draws. Rejecting longer input here keeps the
+        // parse diagnostics, which wrap every offending character in a span,
+        // proportional to an address rather than to whatever was passed in.
+        const longest = this.groups * 5 + 5;
+        if (address.length > longest) {
+            throw new address_error_1.AddressError(`IPv6 addresses are at most ${longest} characters.`);
         }
         this.addressMinusSuffix = address;
         this.parsedAddress = this.parse(this.addressMinusSuffix);
@@ -1089,8 +1130,9 @@ class Address6 {
      * Address6.fromArpa('8.b.d.0.1.0.0.2.ip6.arpa.').networkForm(); // '2001:db8::/32'
      */
     static fromArpa(arpaFormAddress) {
-        // remove an ending ".ip6.arpa", with or without the root dot
-        const nibbles = arpaFormAddress.replace(/(\.ip6\.arpa)?\.?$/, '');
+        // remove an ending ".ip6.arpa", in any case and with or without the root
+        // dot
+        const nibbles = arpaFormAddress.replace(/(\.ip6\.arpa)?\.?$/i, '');
         if (!/^[0-9a-f](\.[0-9a-f]){0,31}$/i.test(nibbles)) {
             throw new address_error_1.AddressError("Invalid 'ip6.arpa' form.");
         }
