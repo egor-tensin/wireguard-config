@@ -2,7 +2,7 @@
 
 # Copyright (c) 2026 Egor Tensin <egor@tensin.name>
 # This file is part of the "WireGuard configuration" project.
-# For details, see https://github.com/egor-tensin/wireguard-config.
+# For details, see https://github.com/egor-tensin/wireguard-config
 # Distributed under the MIT License.
 
 set -o errexit -o nounset -o pipefail
