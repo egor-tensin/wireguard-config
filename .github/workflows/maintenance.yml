@@ -2,8 +2,8 @@ name: Maintenance
 
 on:
   schedule:
-    # Weekly, at 02:30 UTC on Friday (somewhat randomly chosen).
-    - cron: '30 02 * * 5'
+    # 1st of each month, at 02:30 UTC.
+    - cron: '30 02 1 * *'
   workflow_dispatch:
 
 jobs:
