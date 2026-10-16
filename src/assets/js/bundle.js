@@ -911,10 +911,13 @@ class Address6 {
         if (/\//.test(address)) {
             throw new address_error_1.AddressError('Invalid subnet mask.');
         }
-        const zone = constants6.RE_ZONE_STRING.exec(address);
-        if (zone) {
-            this.zone = zone[0];
-            address = address.replace(constants6.RE_ZONE_STRING, '');
+        // A zone runs from the first `%` to the end of the input and holds no line
+        // terminator. Finding it by index reads the input once, where matching
+        // RE_ZONE_STRING retries from every `%` that a line terminator disqualifies.
+        const zoneStart = address.indexOf('%');
+        if (zoneStart !== -1 && /^.*$/.test(address.slice(zoneStart))) {
+            this.zone = address.slice(zoneStart);
+            address = address.slice(0, zoneStart);
         }
         // The longest well-formed address is all but the last two groups written
         // as four hex digits with their colons, then a 15-character dotted quad:
@@ -2364,6 +2367,9 @@ exports.RE_SUBNET_STRING = /\/\d{1,3}(?=%|$)/;
  * A regular expression that matches an IPv6 zone
  * @memberof Address6
  * @static
+ * @deprecated Takes quadratic time on input holding many `%` characters
+ * followed by a line terminator. The library finds the zone by index, as
+ * `Address6`'s constructor shows, and 11.0.0 removes this export.
  */
 exports.RE_ZONE_STRING = /%.*$/;
 exports.RE_URL = /^(?:\[([0-9a-f:.]+)\]|([0-9a-f:.]+))(?:[/?#].*)?$/i;
