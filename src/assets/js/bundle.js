@@ -159,10 +159,10 @@ function stringToPaddedHex(numberString) {
  */
 function testBit(binaryValue, position) {
     const { length } = binaryValue;
-    if (position > length) {
+    if (position >= length) {
         return false;
     }
-    const positionInString = length - position;
+    const positionInString = length - position - 1;
     return binaryValue.substring(positionInString, positionInString + 1) === '1';
 }
 
